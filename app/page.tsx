@@ -6,7 +6,6 @@ import EconomicChart from "@/components/EconomicChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// The eight uneditable series
 const SERIES = [
   "GDP",
   "UNRATE",
@@ -18,15 +17,14 @@ const SERIES = [
   "M2V",
 ];
 
-// Helper to transform DB rows => { date, value } + 'description'
 function transformIndicatorData(rows: any[] | undefined) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
   }
   const description = rows[0]?.economic_indicators?.description || "No description";
-  const data = rows.map((r) => {
-    const d = new Date(r.date);
-    const label = d.toLocaleDateString("en-US", {
+  const data = rows.map((r: any) => {
+    const dateObj = new Date(r.date);
+    const label = dateObj.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
     });
@@ -36,12 +34,12 @@ function transformIndicatorData(rows: any[] | undefined) {
 }
 
 export default function HomePage() {
-  // Top chart = GDPC1 (editable)
+  // top chart => "GDPC1" (editable)
   const { data: gdpc1Rows, isLoading: gdpc1Loading, error: gdpc1Error } =
     useIndicatorData("GDPC1");
   const gdpc1 = transformIndicatorData(gdpc1Rows);
 
-  // Fetch the other 8 series
+  // fetch the 8 other series
   const seriesHooks = SERIES.map((id) => ({
     id,
     ...useIndicatorData(id),
@@ -50,8 +48,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
-
-        {/* Title + Sign-In/Sign-Up */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">PrettyFRED (Next.js)</h1>
           <p className="text-xl text-gray-600 mb-8">
@@ -69,7 +65,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Info card (left) + GDPC1 chart (right) */}
+        {/* Info card + top chart (GDPC1) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
@@ -94,11 +90,14 @@ export default function HomePage() {
             </div>
           </Card>
 
-          {/* GDPC1 Chart (editable) */}
           {gdpc1Loading ? (
-            <div className="flex items-center justify-center h-80">Loading GDPC1...</div>
+            <div className="flex items-center justify-center h-80">
+              Loading GDPC1...
+            </div>
           ) : gdpc1Error ? (
-            <div className="text-red-500">Error: {(gdpc1Error as Error).message}</div>
+            <div className="text-red-500">
+              Error: {(gdpc1Error as Error).message}
+            </div>
           ) : (
             <EconomicChart
               title={gdpc1.description}
@@ -130,7 +129,6 @@ export default function HomePage() {
               );
             }
 
-            // Optional subtitles by ID
             let sub = "";
             switch (id) {
               case "GDP":
