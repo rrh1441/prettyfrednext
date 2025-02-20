@@ -1,9 +1,9 @@
-// FILE: hooks/useIndicatorData.ts
 "use client";
 
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 
+/** A single row from the "fred_data" table. */
 export interface FredRow {
   date: string;
   value: number | null;
@@ -12,8 +12,9 @@ export interface FredRow {
   };
 }
 
-/**
- * Fetch rows from "fred_data"
+/** 
+ * Fetch an array of FredRow from "fred_data". 
+ * If none found, returns empty array.
  */
 async function fetchIndicatorData(seriesId: string): Promise<FredRow[]> {
   const { data, error } = await supabase
@@ -29,16 +30,29 @@ async function fetchIndicatorData(seriesId: string): Promise<FredRow[]> {
     .eq("series_id", seriesId)
     .order("date", { ascending: true });
 
-  if (error) throw new Error(error.message);
-  // If we trust the shape, cast to FredRow[]
+  if (error) {
+    throw new Error(error.message);
+  }
   return (data as FredRow[]) || [];
 }
 
 /**
- * useIndicatorData - typed so data is FredRow[] | undefined
+ * useIndicatorData:
+ * - React Query to fetch "fred_data" for a given series_id
+ * - Returns UseQueryResult<FredRow[], Error>, so 'query.data' is FredRow[] | undefined
  */
 export function useIndicatorData(seriesId: string): UseQueryResult<FredRow[], Error> {
-  return useQuery<FredRow[], Error>(["indicatorData", seriesId], () =>
-    fetchIndicatorData(seriesId)
-  );
+  /**
+   * We pass four generics to useQuery:
+   *   <TQueryFnData, TError, TData, TQueryKey>
+   * but typically we only need:
+   *   <TQueryFnData, TError> 
+   *
+   * TQueryFnData = FredRow[]
+   * TError = Error
+   */
+  return useQuery<FredRow[], Error>({
+    queryKey: ["indicatorData", seriesId],
+    queryFn: () => fetchIndicatorData(seriesId),
+  });
 }

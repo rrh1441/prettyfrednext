@@ -1,4 +1,3 @@
-// FILE: app/page.tsx
 "use client";
 
 import { LogIn, UserPlus } from "lucide-react";
@@ -7,9 +6,7 @@ import EconomicChart from "@/components/EconomicChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-/**
- * transformIndicatorData - typed for FredRow[] | undefined
- */
+// transformIndicatorData = typed to accept FredRow[] | undefined
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
@@ -27,11 +24,11 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
 }
 
 export default function HomePage() {
-  // Example: The top chart "GDPC1"
+  // The top chart => "GDPC1"
   const gdpc1Query = useIndicatorData("GDPC1");
   const gdpc1 = transformIndicatorData(gdpc1Query.data);
 
-  // The other 8 series
+  // 8 other series
   const gdpQuery = useIndicatorData("GDP");
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
@@ -41,7 +38,6 @@ export default function HomePage() {
   const m2slQuery = useIndicatorData("M2SL");
   const m2vQuery = useIndicatorData("M2V");
 
-  // Collect into array to map
   const subSeries = [
     { id: "GDP", query: gdpQuery },
     { id: "UNRATE", query: unrateQuery },
@@ -73,7 +69,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Info card + top chart */}
+        {/* left info card + top chart (GDPC1) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
