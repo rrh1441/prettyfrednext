@@ -83,6 +83,7 @@ export default function EconomicChart({
 
   return (
     <Card
+      // Card background forced to white
       style={{ backgroundColor: "#fff" }}
       className={cn("p-4", isEditable && "border-primary")}
     >
@@ -189,8 +190,8 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Added inline style to force the chart background to white */}
-      <div className="h-[350px] w-full" style={{ backgroundColor: "#fff" }}>
+      {/* Chart Container: Force white background */}
+      <div className="h-[350px] w-full bg-white">
         {/* If not enough valid data, show fallback */}
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -240,8 +241,7 @@ export default function EconomicChart({
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              // Force chart background to white
-              background: "#fff",
+              background: "#fff", // Force Nivo’s chart background to white
               axis: {
                 ticks: {
                   text: {
@@ -252,6 +252,12 @@ export default function EconomicChart({
                   text: {
                     fill: "#666",
                   },
+                },
+              },
+              grid: {
+                line: {
+                  stroke: "#e2e2e2", // or "#fff" if you want no visible grid lines
+                  strokeWidth: 1,
                 },
               },
             }}
