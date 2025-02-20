@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      // Updated alias to point to the root, not ./src
+      "@/*": ["./*"]
     }
   },
   "include": [
