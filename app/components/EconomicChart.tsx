@@ -83,7 +83,6 @@ export default function EconomicChart({
 
   return (
     <Card
-      // Explicitly setting the background to white
       style={{ backgroundColor: "#fff" }}
       className={cn("p-4", isEditable && "border-primary")}
     >
@@ -190,7 +189,8 @@ export default function EconomicChart({
         </>
       )}
 
-      <div className="h-[350px] w-full">
+      {/* Added inline style to force the chart background to white */}
+      <div className="h-[350px] w-full" style={{ backgroundColor: "#fff" }}>
         {/* If not enough valid data, show fallback */}
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
