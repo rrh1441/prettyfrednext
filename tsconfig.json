@@ -19,7 +19,6 @@
       }
     ],
     "paths": {
-      // Updated alias to point to the root, not ./src
       "@/*": ["./*"]
     }
   },
@@ -29,5 +28,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
