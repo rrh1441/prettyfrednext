@@ -18,7 +18,7 @@ interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string; // default color for editable chart
+  color?: string;     // default color for editable chart
   isEditable?: boolean;
 }
 
@@ -30,10 +30,9 @@ export default function EconomicChart({
   isEditable = false,
 }: EconomicChartProps) {
   // 1) Clean up the raw data: remove points where .value is null
-  //    This ensures Nivo won't see 'y: null'
   const validData = data.filter((d) => d.value !== null);
 
-  // 2) If chart is not editable, override with a more "beautiful" color or palette
+  // 2) If chart is not editable, override with a more "beautiful" color
   const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
@@ -46,10 +45,7 @@ export default function EconomicChart({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 4) Date range slider [startIndex, endIndex]
-  const [dateRange, setDateRange] = useState<[number, number]>([
-    0,
-    validData.length,
-  ]);
+  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
   // 5) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
@@ -78,7 +74,7 @@ export default function EconomicChart({
     .filter((_, idx) => idx % tickInterval === 0);
 
   return (
-    <Card className={cn("p-4 bg-white", isEditable && "border-primary")}>
+    <Card className={cn("p-4 !bg-white", isEditable && "border-primary")}>
       {/* Title */}
       {isEditable ? (
         <Input
@@ -222,13 +218,14 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
+            // Ensure area doesn't extend below y=0
+            areaBaselineValue={0}
             colors={[chartColor]}
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              // Force the chart area background to white as well
               background: "#ffffff",
               axis: {
                 ticks: {
