@@ -3,16 +3,13 @@
 import { Card } from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
 import { useState } from "react";
-// If you have input/switch/slider in "app/components/ui", import them here
-// import { Input } from "@/components/ui/input";
-// import { Switch } from "@/components/ui/switch";
-// import { Slider } from "@/components/ui/slider";
-// import { Label } from "@/components/ui/label";
 
+/** Data shape: e.g. { date: "Jan 2020", value: 123.45 } */
 interface DataPoint {
   date: string;
   value: number;
 }
+
 interface EconomicChartProps {
   title: string;
   subtitle: string;
@@ -28,41 +25,41 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  const [chartColor, setChartColor] = useState(color);
-  const [yMin, setYMin] = useState("auto");
-  const [yMax, setYMax] = useState("auto");
+  // We'll keep them as read-only if not used to avoid lint errors:
+  const [chartColor] = useState(color);
+  const [yMin] = useState("auto");
+  const [yMax] = useState("auto");
+  // Actually used:
   const [title, setTitle] = useState(initialTitle);
 
-  // if you have dateRange from a slider, define it here
-  // ...
-  const filteredData = data; // or data.slice(dateRange[0], dateRange[1])
+  // For demonstration, no date range, so we won't store a setter we don't use
+  const filteredData = data;
 
   const transformedData = [
     {
       id: title,
       color: chartColor,
-      data: filteredData.map((d) => ({ x: d.date, y: d.value })),
+      data: filteredData.map((d) => ({
+        x: d.date,
+        y: d.value,
+      })),
     },
   ];
 
   return (
     <Card className={`p-4 ${isEditable ? "border-primary" : ""}`}>
       {isEditable ? (
-        // If you have an Input component
-        // <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="text-lg font-semibold mb-2 border p-1 focus:outline-none"
+          className="text-lg font-semibold mb-2 border p-1 focus:outline-none w-full"
         />
       ) : (
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
       )}
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
-      {/* If you have color pickers / Y-axis range, place them here */}
-      
       <div className="h-[300px] w-full">
         <ResponsiveLine
           data={transformedData}
@@ -91,15 +88,16 @@ export default function EconomicChart({
             format: (val) =>
               Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
           }}
-          enableSlices={false}
           enableArea
           areaOpacity={0.1}
+          enableSlices={false}
           enablePoints
           pointSize={8}
           pointBorderWidth={1}
           colors={[chartColor]}
         />
       </div>
+
       <p className="text-xs text-gray-500 mt-2 text-right">
         Source: Federal Reserve Economic Data (FRED)
       </p>

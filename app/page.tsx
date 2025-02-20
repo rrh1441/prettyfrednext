@@ -6,23 +6,18 @@ import EconomicChart from "@/components/EconomicChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const SERIES = [
-  "GDP",
-  "UNRATE",
-  "CPIAUCSL",
-  "FEDFUNDS",
-  "GS10",
-  "PAYEMS",
-  "M2SL",
-  "M2V",
-];
-
-function transformIndicatorData(rows: any[] | undefined) {
+function transformIndicatorData(
+  rows: {
+    date: string;
+    value: number | null;
+    economic_indicators?: { description?: string };
+  }[] | undefined
+) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
   }
-  const description = rows[0]?.economic_indicators?.description || "No description";
-  const data = rows.map((r: any) => {
+  const description = rows[0].economic_indicators?.description ?? "No description";
+  const data = rows.map((r) => {
     const dateObj = new Date(r.date);
     const label = dateObj.toLocaleDateString("en-US", {
       year: "numeric",
@@ -34,16 +29,31 @@ function transformIndicatorData(rows: any[] | undefined) {
 }
 
 export default function HomePage() {
-  // top chart => "GDPC1" (editable)
-  const { data: gdpc1Rows, isLoading: gdpc1Loading, error: gdpc1Error } =
-    useIndicatorData("GDPC1");
-  const gdpc1 = transformIndicatorData(gdpc1Rows);
+  // 1) The top chart: "GDPC1"
+  const gdpc1Query = useIndicatorData("GDPC1");
+  const gdpc1 = transformIndicatorData(gdpc1Query.data);
 
-  // fetch the 8 other series
-  const seriesHooks = SERIES.map((id) => ({
-    id,
-    ...useIndicatorData(id),
-  }));
+  // 2) The other 8 series, each with its own hook:
+  const gdpQuery = useIndicatorData("GDP");
+  const unrateQuery = useIndicatorData("UNRATE");
+  const cpiQuery = useIndicatorData("CPIAUCSL");
+  const fedFundsQuery = useIndicatorData("FEDFUNDS");
+  const gs10Query = useIndicatorData("GS10");
+  const payemsQuery = useIndicatorData("PAYEMS");
+  const m2slQuery = useIndicatorData("M2SL");
+  const m2vQuery = useIndicatorData("M2V");
+
+  // Collect them into an array to map:
+  const subSeries = [
+    { id: "GDP", query: gdpQuery },
+    { id: "UNRATE", query: unrateQuery },
+    { id: "CPIAUCSL", query: cpiQuery },
+    { id: "FEDFUNDS", query: fedFundsQuery },
+    { id: "GS10", query: gs10Query },
+    { id: "PAYEMS", query: payemsQuery },
+    { id: "M2SL", query: m2slQuery },
+    { id: "M2V", query: m2vQuery },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,7 +75,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Info card + top chart (GDPC1) */}
+        {/* Info card (left) + top chart (right) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
@@ -90,13 +100,13 @@ export default function HomePage() {
             </div>
           </Card>
 
-          {gdpc1Loading ? (
+          {gdpc1Query.isLoading ? (
             <div className="flex items-center justify-center h-80">
               Loading GDPC1...
             </div>
-          ) : gdpc1Error ? (
+          ) : gdpc1Query.error ? (
             <div className="text-red-500">
-              Error: {(gdpc1Error as Error).message}
+              Error: {(gdpc1Query.error as Error).message}
             </div>
           ) : (
             <EconomicChart
@@ -109,9 +119,10 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 8 uneditable series below */}
+        {/* The 8 uneditable series below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {seriesHooks.map(({ id, data: rows, isLoading, error }) => {
+          {subSeries.map(({ id, query }) => {
+            const { data: rows, isLoading, error } = query;
             const { data, description } = transformIndicatorData(rows);
 
             if (isLoading) {
