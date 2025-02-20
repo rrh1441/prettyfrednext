@@ -1,7 +1,7 @@
 // FILE: hooks/useIndicatorData.ts
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 
 export interface FredRow {
@@ -12,6 +12,9 @@ export interface FredRow {
   };
 }
 
+/**
+ * Fetch rows from "fred_data"
+ */
 async function fetchIndicatorData(seriesId: string): Promise<FredRow[]> {
   const { data, error } = await supabase
     .from("fred_data")
@@ -27,13 +30,15 @@ async function fetchIndicatorData(seriesId: string): Promise<FredRow[]> {
     .order("date", { ascending: true });
 
   if (error) throw new Error(error.message);
-  // Type assertion to FredRow[] is fine if we trust our DB schema
+  // If we trust the shape, cast to FredRow[]
   return (data as FredRow[]) || [];
 }
 
-export function useIndicatorData(seriesId: string) {
-  // specify <FredRow[]> to ensure 'query.data' is typed as FredRow[] | undefined
-  return useQuery<FredRow[]>(["indicatorData", seriesId], () =>
+/**
+ * useIndicatorData - typed so data is FredRow[] | undefined
+ */
+export function useIndicatorData(seriesId: string): UseQueryResult<FredRow[], Error> {
+  return useQuery<FredRow[], Error>(["indicatorData", seriesId], () =>
     fetchIndicatorData(seriesId)
   );
 }
