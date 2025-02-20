@@ -83,6 +83,7 @@ export default function EconomicChart({
 
   return (
     <Card
+      // Explicitly setting the background to white
       style={{ backgroundColor: "#fff" }}
       className={cn("p-4", isEditable && "border-primary")}
     >
