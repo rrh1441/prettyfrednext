@@ -29,7 +29,7 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Clean up the raw data: remove points where .value is null
+  // 1) Clean up raw data: remove points where .value is null
   const validData = data.filter((d) => d.value !== null);
 
   // 2) If chart is not editable, override with a more "beautiful" color
@@ -45,7 +45,10 @@ export default function EconomicChart({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 4) Date range slider [startIndex, endIndex]
-  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
+  const [dateRange, setDateRange] = useState<[number, number]>([
+    0,
+    validData.length,
+  ]);
 
   // 5) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
@@ -67,14 +70,22 @@ export default function EconomicChart({
       ]
     : [];
 
-  // 8) Limit x-axis ticks using date labels (not numeric indexes)
+  // 8) X-axis tick logic, using date labels
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
+  // 9) Ensure "auto" yMin starts at 0 (so area doesn't go below the x-axis).
+  //    If the user sets a numeric value, we respect it (even if negative).
+  const computedYMin = yMin === "auto" ? 0 : Number(yMin);
+  const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
+
   return (
-    <Card className={cn("p-4 !bg-white", isEditable && "border-primary")}>
+    <Card
+      style={{ backgroundColor: "#fff" }}
+      className={cn("p-4", isEditable && "border-primary")}
+    >
       {/* Title */}
       {isEditable ? (
         <Input
@@ -89,7 +100,7 @@ export default function EconomicChart({
 
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
-      {/* Editable Controls */}
+      {/* Editable controls */}
       {isEditable && (
         <>
           <div className="space-y-4 mb-4">
@@ -114,7 +125,9 @@ export default function EconomicChart({
               </Slider.Root>
               <div className="flex justify-between text-xs text-gray-600 mt-1">
                 <span>{filteredData[0]?.date ?? ""}</span>
-                <span>{filteredData[filteredData.length - 1]?.date ?? ""}</span>
+                <span>
+                  {filteredData[filteredData.length - 1]?.date ?? ""}
+                </span>
               </div>
             </div>
 
@@ -153,7 +166,7 @@ export default function EconomicChart({
                 />
               </div>
 
-              {/* Y-axis range */}
+              {/* Y-axis Range */}
               <div className="flex items-center gap-2">
                 <label className="text-sm w-16">Y Range:</label>
                 <Input
@@ -189,8 +202,8 @@ export default function EconomicChart({
             xScale={{ type: "point" }}
             yScale={{
               type: "linear",
-              min: yMin === "auto" ? "auto" : Number(yMin),
-              max: yMax === "auto" ? "auto" : Number(yMax),
+              min: computedYMin,
+              max: computedYMax,
               stacked: false,
             }}
             axisBottom={{
@@ -218,7 +231,7 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // Ensure area doesn't extend below y=0
+            // Ensures area only fills down to y=0, not below
             areaBaselineValue={0}
             colors={[chartColor]}
             enablePoints={showPoints}
@@ -226,7 +239,8 @@ export default function EconomicChart({
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              background: "#ffffff",
+              // Force chart background to white
+              background: "#fff",
               axis: {
                 ticks: {
                   text: {
