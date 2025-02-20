@@ -1,18 +1,15 @@
 "use client";
 
 import { LogIn, UserPlus } from "lucide-react";
-import { useIndicatorData } from "@/hooks/useIndicatorData";
+import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-function transformIndicatorData(
-  rows: {
-    date: string;
-    value: number | null;
-    economic_indicators?: { description?: string };
-  }[] | undefined
-) {
+/**
+ * Helper to transform DB rows => { date, value } + description
+ */
+function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
   }
@@ -43,7 +40,7 @@ export default function HomePage() {
   const m2slQuery = useIndicatorData("M2SL");
   const m2vQuery = useIndicatorData("M2V");
 
-  // Collect them into an array to map:
+  // Collect them into an array to map in the JSX
   const subSeries = [
     { id: "GDP", query: gdpQuery },
     { id: "UNRATE", query: unrateQuery },
