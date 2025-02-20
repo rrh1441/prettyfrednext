@@ -18,7 +18,7 @@ interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string;     // default color for editable chart
+  color?: string; // default color for editable chart
   isEditable?: boolean;
 }
 
@@ -34,11 +34,10 @@ export default function EconomicChart({
   const validData = data.filter((d) => d.value !== null);
 
   // 2) If chart is not editable, override with a more "beautiful" color or palette
-  //    to avoid plain grayscale. If you want multiple lines, you can choose random color or so.
-  const defaultNonEditableColor = "#7E69AB"; 
+  const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
-  // 3) Title, color states, etc. for editing
+  // 3) Editable states
   const [title, setTitle] = useState(initialTitle);
   const [chartColor, setChartColor] = useState(chartColorDefault);
   const [yMin, setYMin] = useState<string>("auto");
@@ -47,13 +46,15 @@ export default function EconomicChart({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 4) Date range slider [startIndex, endIndex]
-  //    (Use the valid data length, not the raw data length)
-  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
+  const [dateRange, setDateRange] = useState<[number, number]>([
+    0,
+    validData.length,
+  ]);
 
   // 5) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 6) If we have fewer than 2 points after filtering, skip Nivo line to avoid "d='null'"
+  // 6) If we have fewer than 2 points, skip drawing the line
   const hasEnoughPoints = filteredData.length >= 2;
 
   // 7) Build Nivo data
@@ -64,20 +65,20 @@ export default function EconomicChart({
           color: chartColor,
           data: filteredData.map((d) => ({
             x: d.date,
-            y: d.value ?? 0, // fallback to 0 if needed
+            y: d.value ?? 0,
           })),
         },
       ]
     : [];
 
-  // 8) Limit x-axis ticks
+  // 8) Limit x-axis ticks using date labels (not numeric indexes)
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
-    .map((_, idx) => (idx % tickInterval === 0 ? idx : null))
-    .filter((idx) => idx !== null);
+    .map((d) => d.date)
+    .filter((_, idx) => idx % tickInterval === 0);
 
   return (
-    <Card className={cn("p-4", isEditable && "border-primary")}>
+    <Card className={cn("p-4 bg-white", isEditable && "border-primary")}>
       {/* Title */}
       {isEditable ? (
         <Input
@@ -180,7 +181,7 @@ export default function EconomicChart({
       )}
 
       <div className="h-[350px] w-full">
-        {/* If not enough valid data, show fallback message */}
+        {/* If not enough valid data, show fallback */}
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
             Not enough data to display a chart.
@@ -212,7 +213,9 @@ export default function EconomicChart({
               legendOffset: -60,
               legendPosition: "middle",
               format: (val) =>
-                Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
+                Number(val).toLocaleString(undefined, {
+                  maximumFractionDigits: 1,
+                }),
             }}
             curve="linear"
             useMesh
@@ -225,6 +228,8 @@ export default function EconomicChart({
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
+              // Force the chart area background to white as well
+              background: "#ffffff",
               axis: {
                 ticks: {
                   text: {
