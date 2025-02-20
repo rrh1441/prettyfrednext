@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-/** Data shape: e.g. { date: "Jan 2020", value: 123.45 } */
+/** A single data point. E.g. { date: 'Jan 2020', value: 123 } */
 interface DataPoint {
   date: string;
   value: number;
@@ -29,24 +29,22 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) chart color
+  // Chart Title
+  const [title, setTitle] = useState(initialTitle);
+  // Chart Color
   const [chartColor, setChartColor] = useState(color);
-
-  // 2) Y-axis range
+  // Y-axis range
   const [yMin, setYMin] = useState<string>("auto");
   const [yMax, setYMax] = useState<string>("auto");
-
-  // 3) chart title
-  const [title, setTitle] = useState(initialTitle);
-
-  // 4) show/hide chart points/labels
+  // Show/hide points
   const [showPoints, setShowPoints] = useState(false);
+  // Expand/collapse advanced settings
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // 5) date range slider
-  //    We'll store [startIndex, endIndex], then slice data accordingly
+  // The date range slider [startIndex, endIndex]
   const [dateRange, setDateRange] = useState<[number, number]>([0, data.length]);
 
-  // Filter the data according to dateRange
+  // Filter data by date range
   const filteredData = data.slice(dateRange[0], dateRange[1]);
 
   // Build Nivo data
@@ -83,74 +81,97 @@ export default function EconomicChart({
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
       {isEditable && (
-        <div className="space-y-4 mb-4">
-          {/* Color picker */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm w-16">Color:</label>
-            <input
-              type="color"
-              value={chartColor}
-              onChange={(e) => setChartColor(e.target.value)}
-              className="w-12 h-8 border p-0"
-            />
-          </div>
+        <>
+          {/* Basic chart controls (date range slider, showPoints) */}
+          <div className="space-y-4 mb-4">
+            {/* Date range slider (with track) */}
+            <div>
+              <label className="block text-sm mb-1">Date Range</label>
+              <Slider
+                value={dateRange}
+                onValueChange={(val) => {
+                  setDateRange([val[0], val[1]] as [number, number]);
+                }}
+                min={0}
+                max={data.length}
+                step={1}
+                // we style the track to show a line
+                className="relative flex w-full touch-none items-center"
+              >
+                <Slider.Track className="relative h-1 w-full grow rounded-full bg-gray-300">
+                  <Slider.Range className="absolute h-full rounded-full bg-primary" />
+                </Slider.Track>
+                <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
+                <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
+              </Slider>
+              <div className="flex justify-between text-xs text-gray-600 mt-1">
+                <span>{filteredData[0]?.date ?? ""}</span>
+                <span>{filteredData[filteredData.length - 1]?.date ?? ""}</span>
+              </div>
+            </div>
 
-          {/* Y range */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm w-16">Y Range:</label>
-            <Input
-              type="text"
-              placeholder="Min or auto"
-              value={yMin}
-              onChange={(e) => setYMin(e.target.value)}
-              className="w-24"
-            />
-            <Input
-              type="text"
-              placeholder="Max or auto"
-              value={yMax}
-              onChange={(e) => setYMax(e.target.value)}
-              className="w-24"
-            />
-          </div>
-
-          {/* Show/hide points */}
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={showPoints}
-              onCheckedChange={setShowPoints}
-              id="showPoints"
-            />
-            <label htmlFor="showPoints" className="text-sm">
-              Show Points
-            </label>
-          </div>
-
-          {/* Date range slider */}
-          <div>
-            <label className="block text-sm mb-1">Date Range</label>
-            <Slider
-              value={dateRange}
-              onValueChange={(val) => {
-                // Ensure we store a tuple
-                setDateRange([val[0], val[1]] as [number, number]);
-              }}
-              min={0}
-              max={data.length}
-              step={1}
-            />
-            <div className="flex justify-between text-xs text-gray-600 mt-1">
-              <span>{filteredData[0]?.date ?? ""}</span>
-              <span>{filteredData[filteredData.length - 1]?.date ?? ""}</span>
+            {/* Toggle show points */}
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={showPoints}
+                onCheckedChange={setShowPoints}
+                id="showPoints"
+              />
+              <label htmlFor="showPoints" className="text-sm">
+                Show Points
+              </label>
             </div>
           </div>
-        </div>
+
+          {/* Expandable advanced settings */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            className="mb-4 underline text-sm text-gray-800 hover:text-gray-900"
+          >
+            {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
+              {/* Color Picker */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm w-16">Color:</label>
+                <input
+                  type="color"
+                  value={chartColor}
+                  onChange={(e) => setChartColor(e.target.value)}
+                  className="w-12 h-8 border p-0"
+                />
+              </div>
+              {/* Y range */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm w-16">Y Range:</label>
+                <Input
+                  type="text"
+                  placeholder="Min or auto"
+                  value={yMin}
+                  onChange={(e) => setYMin(e.target.value)}
+                  className="w-24"
+                />
+                <Input
+                  type="text"
+                  placeholder="Max or auto"
+                  value={yMax}
+                  onChange={(e) => setYMax(e.target.value)}
+                  className="w-24"
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      <div className="h-[300px] w-full">
+      <div className="h-[350px] w-full">
         <ResponsiveLine
           data={transformedData}
-          margin={{ top: 50, right: 20, bottom: 50, left: 60 }}
+          // Increase margins so axis labels have space
+          margin={{ top: 40, right: 30, bottom: 60, left: 70 }}
           xScale={{ type: "point" }}
           yScale={{
             type: "linear",
@@ -161,31 +182,28 @@ export default function EconomicChart({
           axisBottom={{
             tickSize: 5,
             tickPadding: 5,
-            tickRotation: -45,
-            // Nivo can accept numeric indices if xScale is "point".
-            // We'll pass the array of indexes we want to show as tick values.
-            tickValues, 
+            tickRotation: -30,
+            tickValues,
             legend: "Date",
-            legendOffset: 40,
+            legendOffset: 45,
             legendPosition: "middle",
           }}
           axisLeft={{
             tickSize: 5,
             tickPadding: 5,
             legend: "Value",
-            legendOffset: -50,
+            legendOffset: -60,
             legendPosition: "middle",
             format: (val) =>
               Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
           }}
           curve="linear"
+          useMesh
           enableSlices={false}
-          useMesh={true}
-          enableArea={true}
+          enableArea
           areaOpacity={0.1}
           colors={[chartColor]}
           enablePoints={showPoints}
-          enablePointLabel={false}
           pointSize={6}
           pointBorderWidth={2}
           pointBorderColor={{ from: "serieColor" }}
@@ -205,6 +223,7 @@ export default function EconomicChart({
           }}
         />
       </div>
+
       <p className="text-xs text-gray-500 mt-2 text-right">
         Source: Federal Reserve Economic Data (FRED)
       </p>
