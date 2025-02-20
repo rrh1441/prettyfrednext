@@ -2,12 +2,11 @@
 
 import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData } from "@/hooks/useIndicatorData";
-import EconomicChart from "@/app/components/EconomicChart";
-// If using Card/Button from your new UI folder:
-import { Card } from "@/app/components/ui/card";
-import { Button } from "@/app/components/ui/button";
+import EconomicChart from "@/components/EconomicChart";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-/** The 8 uneditable series */
+// The eight uneditable series
 const SERIES = [
   "GDP",
   "UNRATE",
@@ -19,12 +18,12 @@ const SERIES = [
   "M2V",
 ];
 
-// Helper to transform DB rows => { date, value } plus a 'description'
+// Helper to transform DB rows => { date, value } + 'description'
 function transformIndicatorData(rows: any[] | undefined) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
   }
-  const description = rows[0].economic_indicators?.description || "No description";
+  const description = rows[0]?.economic_indicators?.description || "No description";
   const data = rows.map((r) => {
     const d = new Date(r.date);
     const label = d.toLocaleDateString("en-US", {
@@ -37,12 +36,12 @@ function transformIndicatorData(rows: any[] | undefined) {
 }
 
 export default function HomePage() {
-  // 1) top chart = GDPC1 (editable)
+  // Top chart = GDPC1 (editable)
   const { data: gdpc1Rows, isLoading: gdpc1Loading, error: gdpc1Error } =
     useIndicatorData("GDPC1");
   const gdpc1 = transformIndicatorData(gdpc1Rows);
 
-  // 2) fetch the other 8 series
+  // Fetch the other 8 series
   const seriesHooks = SERIES.map((id) => ({
     id,
     ...useIndicatorData(id),
@@ -51,7 +50,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Title + Sign in / Sign up */}
+
+        {/* Title + Sign-In/Sign-Up */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">PrettyFRED (Next.js)</h1>
           <p className="text-xl text-gray-600 mb-8">
@@ -69,7 +69,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Info card (left) + top chart (right) */}
+        {/* Info card (left) + GDPC1 chart (right) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
@@ -94,11 +94,9 @@ export default function HomePage() {
             </div>
           </Card>
 
-          {/* GDPC1 chart (editable) */}
+          {/* GDPC1 Chart (editable) */}
           {gdpc1Loading ? (
-            <div className="flex items-center justify-center h-80">
-              Loading GDPC1...
-            </div>
+            <div className="flex items-center justify-center h-80">Loading GDPC1...</div>
           ) : gdpc1Error ? (
             <div className="text-red-500">Error: {(gdpc1Error as Error).message}</div>
           ) : (
@@ -112,7 +110,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* The 8 uneditable series below */}
+        {/* 8 uneditable series below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {seriesHooks.map(({ id, data: rows, isLoading, error }) => {
             const { data, description } = transformIndicatorData(rows);
@@ -132,6 +130,7 @@ export default function HomePage() {
               );
             }
 
+            // Optional subtitles by ID
             let sub = "";
             switch (id) {
               case "GDP":
