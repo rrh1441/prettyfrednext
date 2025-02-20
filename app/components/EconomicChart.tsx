@@ -5,6 +5,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+// Import your custom subcomponent-based slider:
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -29,19 +30,19 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // Chart Title
+  // Chart title
   const [title, setTitle] = useState(initialTitle);
-  // Chart Color
+  // Chart color
   const [chartColor, setChartColor] = useState(color);
   // Y-axis range
   const [yMin, setYMin] = useState<string>("auto");
   const [yMax, setYMax] = useState<string>("auto");
-  // Show/hide points
+  // Show/hide line points
   const [showPoints, setShowPoints] = useState(false);
   // Expand/collapse advanced settings
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // The date range slider [startIndex, endIndex]
+  // The date range slider (startIndex, endIndex)
   const [dateRange, setDateRange] = useState<[number, number]>([0, data.length]);
 
   // Filter data by date range
@@ -59,8 +60,7 @@ export default function EconomicChart({
     },
   ];
 
-  // Limit the number of x-axis ticks to avoid overlap.
-  // E.g. 12 ticks max:
+  // Limit the number of x-axis ticks to avoid overlap (12 max)
   const tickInterval = Math.ceil(filteredData.length / 12);
   const tickValues = filteredData
     .map((_, idx) => (idx % tickInterval === 0 ? idx : null))
@@ -68,6 +68,7 @@ export default function EconomicChart({
 
   return (
     <Card className={cn("p-4", isEditable && "border-primary")}>
+      {/* Title */}
       {isEditable ? (
         <Input
           type="text"
@@ -80,22 +81,21 @@ export default function EconomicChart({
       )}
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
+      {/* Only show the controls if isEditable */}
       {isEditable && (
         <>
-          {/* Basic chart controls (date range slider, showPoints) */}
           <div className="space-y-4 mb-4">
-            {/* Date range slider (with track) */}
+            {/* Date range slider */}
             <div>
               <label className="block text-sm mb-1">Date Range</label>
-              <Slider
+              <Slider.Root
                 value={dateRange}
-                onValueChange={(val) => {
-                  setDateRange([val[0], val[1]] as [number, number]);
-                }}
+                onValueChange={(val) =>
+                  setDateRange([val[0], val[1]] as [number, number])
+                }
                 min={0}
                 max={data.length}
                 step={1}
-                // we style the track to show a line
                 className="relative flex w-full touch-none items-center"
               >
                 <Slider.Track className="relative h-1 w-full grow rounded-full bg-gray-300">
@@ -103,7 +103,7 @@ export default function EconomicChart({
                 </Slider.Track>
                 <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
                 <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
-              </Slider>
+              </Slider.Root>
               <div className="flex justify-between text-xs text-gray-600 mt-1">
                 <span>{filteredData[0]?.date ?? ""}</span>
                 <span>{filteredData[filteredData.length - 1]?.date ?? ""}</span>
@@ -144,7 +144,8 @@ export default function EconomicChart({
                   className="w-12 h-8 border p-0"
                 />
               </div>
-              {/* Y range */}
+
+              {/* Y-axis Range */}
               <div className="flex items-center gap-2">
                 <label className="text-sm w-16">Y Range:</label>
                 <Input
@@ -167,10 +168,10 @@ export default function EconomicChart({
         </>
       )}
 
+      {/* The line chart */}
       <div className="h-[350px] w-full">
         <ResponsiveLine
           data={transformedData}
-          // Increase margins so axis labels have space
           margin={{ top: 40, right: 30, bottom: 60, left: 70 }}
           xScale={{ type: "point" }}
           yScale={{
