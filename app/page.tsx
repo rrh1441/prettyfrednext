@@ -3,7 +3,7 @@
 import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
-import SubscriptionCard from '@/components/ui/SubscriptionCard';  // Updated import
+import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
 
 // transformIndicatorData = typed to accept FredRow[] | undefined
@@ -24,29 +24,30 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
 }
 
 export default function HomePage() {
-  // The top chart => "GDPC1"
+  // Top chart: GDPC1 (Real GDP, Chained 2012 Dollars)
   const gdpc1Query = useIndicatorData("GDPC1");
   const gdpc1 = transformIndicatorData(gdpc1Query.data);
 
-  // 8 other series
-  const gdpQuery = useIndicatorData("GDP");
+  // Other series queries:
+  const gdpQuery = useIndicatorData("GDP"); // Nominal GDP
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
-  const dgs10Query = useIndicatorData("dgs10");
+  const dgs10Query = useIndicatorData("DGS10"); // 10-Year Treasury Rate
   const payemsQuery = useIndicatorData("PAYEMS");
+  const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
-  const m2vQuery = useIndicatorData("M2V");
 
+  // 8 non-editable series (using GDP instead of GDPC1)
   const subSeries = [
     { id: "GDP", query: gdpQuery },
     { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
-    { id: "FEDFUNDS", query: fedFundsQuery },
-    { id: "dgs10", query: dgs10Query },
     { id: "PAYEMS", query: payemsQuery },
+    { id: "FEDFUNDS", query: fedFundsQuery },
+    { id: "DGS10", query: dgs10Query },
+    { id: "SP500", query: sp500Query },
     { id: "M2SL", query: m2slQuery },
-    { id: "M2V", query: m2vQuery },
   ];
 
   return (
@@ -83,7 +84,7 @@ export default function HomePage() {
           ) : (
             <EconomicChart
               title={gdpc1.description}
-              subtitle="(Real Gross Domestic Product)"
+              subtitle="(Real Gross Domestic Product (Chained 2012 Dollars))"
               data={gdpc1.data}
               color="#6E59A5"
               isEditable
@@ -91,7 +92,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 8 uneditable series below */}
+        {/* 8 non-editable series below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {subSeries.map(({ id, query }) => {
             const { data: rows, isLoading, error } = query;
@@ -115,28 +116,31 @@ export default function HomePage() {
             let sub = "";
             switch (id) {
               case "GDP":
-                sub = "(Gross Domestic Product)";
+                sub = "(Gross Domestic Product (Nominal))";
                 break;
               case "UNRATE":
                 sub = "(Civilian Unemployment Rate)";
                 break;
               case "CPIAUCSL":
-                sub = "(Consumer Price Index for All Urban Consumers)";
+                sub = "(Consumer Price Index for All Urban Consumers: All Items)";
+                break;
+              case "PAYEMS":
+                sub = "(Total Nonfarm Payrolls)";
                 break;
               case "FEDFUNDS":
                 sub = "(Effective Federal Funds Rate)";
                 break;
-              case "dgs10":
+              case "DGS10":
                 sub = "(10-Year Treasury Constant Maturity Rate)";
                 break;
-              case "PAYEMS":
-                sub = "(All Employees: Total Nonfarm Payrolls)";
+              case "SP500":
+                sub = "(S&P 500 Index)";
                 break;
               case "M2SL":
-                sub = "(M2 Money Stock - DISCONTINUED)";
+                sub = "(M2 Money Stock)";
                 break;
-              case "M2V":
-                sub = "(Velocity of M2 Money Stock)";
+              default:
+                sub = "";
                 break;
             }
 
