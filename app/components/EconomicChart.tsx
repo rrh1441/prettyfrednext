@@ -95,7 +95,6 @@ export default function EconomicChart({
 
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
-      {/* Editable controls (slider remains outside the Customize Chart section) */}
       {isEditable && (
         <>
           {/* Date Range Slider */}
@@ -163,6 +162,14 @@ export default function EconomicChart({
                 />
               </div>
 
+              {/* Toggle Show Points */}
+              <div className="flex items-center gap-2">
+                <Switch checked={showPoints} onCheckedChange={setShowPoints} id="showPoints" />
+                <label htmlFor="showPoints" className="text-sm">
+                  Show Points
+                </label>
+              </div>
+
               {/* X-axis Date Selection */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -171,7 +178,6 @@ export default function EconomicChart({
                     value={dateRange[0]}
                     onChange={(e) => {
                       const newStart = Number(e.target.value);
-                      // Ensure start is less than the current end
                       if (newStart < dateRange[1]) {
                         setDateRange([newStart, dateRange[1]]);
                       }
@@ -191,7 +197,6 @@ export default function EconomicChart({
                     value={dateRange[1]}
                     onChange={(e) => {
                       const newEnd = Number(e.target.value);
-                      // Ensure end is greater than the current start
                       if (newEnd > dateRange[0]) {
                         setDateRange([dateRange[0], newEnd]);
                       }
@@ -199,7 +204,6 @@ export default function EconomicChart({
                     className="border rounded p-1"
                   >
                     {Array.from({ length: validData.length + 1 }, (_, i) => {
-                      // When i equals validData.length, use the last date as label.
                       const label = i === validData.length ? validData[validData.length - 1].date : validData[i].date;
                       return (
                         <option key={i} value={i}>
@@ -257,7 +261,7 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // Now the area fills down to the computedYMin instead of always 0.
+            // Area fills down to the computedYMin instead of 0
             areaBaselineValue={computedYMin}
             colors={[chartColor]}
             enablePoints={showPoints}
