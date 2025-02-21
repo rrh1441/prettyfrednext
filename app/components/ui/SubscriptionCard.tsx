@@ -12,7 +12,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
   return (
     <Card className={cn("p-8 w-full h-full flex flex-col")}>
       <div className="flex-grow">
-        <h2 className="text-3xl font-bold mb-6 text-center">Subscribe to Premium</h2>
+        <h2 className="text-3xl font-bold mb-6 text-center">Upgrade to Premium</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic (Free) Section */}
           <div className="bg-gray-50 p-6 rounded-lg shadow-md">
@@ -38,10 +38,10 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
       </div>
       <div className="mt-8">
         <button
-          onClick={onSubscribe ? onSubscribe : () => console.log("Subscribe CTA clicked")}
+          onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Premium clicked")}
           className="w-full md:w-auto bg-primary text-white font-semibold py-3 px-6 rounded hover:bg-primary-dark transition"
         >
-          Get Premium
+          Unlock Premium
         </button>
       </div>
     </Card>
