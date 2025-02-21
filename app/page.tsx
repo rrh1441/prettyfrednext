@@ -3,7 +3,7 @@
 import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
-import { Card } from "@/components/ui/card";
+import Card from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 // transformIndicatorData = typed to accept FredRow[] | undefined
@@ -69,7 +69,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* left info card + top chart (GDPC1) */}
+        {/* Left info card + top chart (GDPC1) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <Card className="p-6">
             <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
@@ -148,7 +148,7 @@ export default function HomePage() {
               case "FEDFUNDS":
                 sub = "(Effective Federal Funds Rate)";
                 break;
-              case "GS10":
+              case "DGS10":
                 sub = "(10-Year Treasury Constant Maturity Rate)";
                 break;
               case "PAYEMS":
