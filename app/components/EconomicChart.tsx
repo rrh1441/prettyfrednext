@@ -18,7 +18,7 @@ interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string;     // default color for editable chart
+  color?: string; // default color for editable chart
   isEditable?: boolean;
 }
 
@@ -45,10 +45,8 @@ export default function EconomicChart({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 4) Date range slider [startIndex, endIndex]
-  const [dateRange, setDateRange] = useState<[number, number]>([
-    0,
-    validData.length,
-  ]);
+  // Note: The end index is exclusive (so max value is validData.length)
+  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
   // 5) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
@@ -76,17 +74,13 @@ export default function EconomicChart({
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 9) Ensure "auto" yMin starts at 0 (so area doesn't go below the x-axis).
-  //    If the user sets a numeric value, we respect it (even if negative).
+  // 9) Compute yMin and yMax for the chart
+  //    "auto" yMin defaults to 0, otherwise we use the specified numeric value.
   const computedYMin = yMin === "auto" ? 0 : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
   return (
-    <Card
-      /* Card background forced to white */
-      style={{ backgroundColor: "#fff" }}
-      className={cn("p-4", isEditable && "border-primary")}
-    >
+    <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
       {/* Title */}
       {isEditable ? (
         <Input
@@ -101,59 +95,42 @@ export default function EconomicChart({
 
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
-      {/* Editable controls */}
+      {/* Editable controls (slider remains outside the Customize Chart section) */}
       {isEditable && (
         <>
-          <div className="space-y-4 mb-4">
-            {/* Date Range Slider */}
-            <div>
-              <label className="block text-sm mb-1">Date Range</label>
-              <Slider.Root
-                value={dateRange}
-                onValueChange={(val) =>
-                  setDateRange([val[0], val[1]] as [number, number])
-                }
-                min={0}
-                max={validData.length}
-                step={1}
-                className="relative flex w-full touch-none items-center"
-              >
-                <Slider.Track className="relative h-1 w-full grow rounded-full bg-gray-300">
-                  <Slider.Range className="absolute h-full rounded-full bg-primary" />
-                </Slider.Track>
-                <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
-                <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
-              </Slider.Root>
-              <div className="flex justify-between text-xs text-gray-600 mt-1">
-                <span>{filteredData[0]?.date ?? ""}</span>
-                <span>
-                  {filteredData[filteredData.length - 1]?.date ?? ""}
-                </span>
-              </div>
-            </div>
-
-            {/* Show/hide points */}
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={showPoints}
-                onCheckedChange={setShowPoints}
-                id="showPoints"
-              />
-              <label htmlFor="showPoints" className="text-sm">
-                Show Points
-              </label>
+          {/* Date Range Slider */}
+          <div className="mb-4">
+            <label className="block text-sm mb-1">Date Range</label>
+            <Slider.Root
+              value={dateRange}
+              onValueChange={(val) => setDateRange([val[0], val[1]] as [number, number])}
+              min={0}
+              max={validData.length}
+              step={1}
+              className="relative flex w-full touch-none items-center"
+            >
+              <Slider.Track className="relative h-1 w-full grow rounded-full bg-gray-300">
+                <Slider.Range className="absolute h-full rounded-full bg-primary" />
+              </Slider.Track>
+              <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
+              <Slider.Thumb className="block h-4 w-4 rounded-full border-2 border-primary bg-white" />
+            </Slider.Root>
+            <div className="flex justify-between text-xs text-gray-600 mt-1">
+              <span>{filteredData[0]?.date ?? ""}</span>
+              <span>{filteredData[filteredData.length - 1]?.date ?? ""}</span>
             </div>
           </div>
 
-          {/* Expandable advanced settings */}
+          {/* Toggle Customize Chart Section */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
             className="mb-4 underline text-sm text-gray-800 hover:text-gray-900"
           >
-            {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
+            {showAdvanced ? "Hide Customize Chart" : "Show Customize Chart"}
           </button>
 
+          {/* Customize Chart Section */}
           {showAdvanced && (
             <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
               {/* Color Picker */}
@@ -185,6 +162,54 @@ export default function EconomicChart({
                   className="w-24"
                 />
               </div>
+
+              {/* X-axis Date Selection */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm w-24">Start Date:</label>
+                  <select
+                    value={dateRange[0]}
+                    onChange={(e) => {
+                      const newStart = Number(e.target.value);
+                      // Ensure start is less than the current end
+                      if (newStart < dateRange[1]) {
+                        setDateRange([newStart, dateRange[1]]);
+                      }
+                    }}
+                    className="border rounded p-1"
+                  >
+                    {validData.map((d, i) => (
+                      <option key={i} value={i}>
+                        {d.date}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm w-24">End Date:</label>
+                  <select
+                    value={dateRange[1]}
+                    onChange={(e) => {
+                      const newEnd = Number(e.target.value);
+                      // Ensure end is greater than the current start
+                      if (newEnd > dateRange[0]) {
+                        setDateRange([dateRange[0], newEnd]);
+                      }
+                    }}
+                    className="border rounded p-1"
+                  >
+                    {Array.from({ length: validData.length + 1 }, (_, i) => {
+                      // When i equals validData.length, use the last date as label.
+                      const label = i === validData.length ? validData[validData.length - 1].date : validData[i].date;
+                      return (
+                        <option key={i} value={i}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
         </>
@@ -192,7 +217,6 @@ export default function EconomicChart({
 
       {/* Chart Container: Force white background */}
       <div className="h-[350px] w-full bg-white">
-        {/* If not enough valid data, show fallback */}
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
             Not enough data to display a chart.
@@ -233,15 +257,14 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // Ensures area only fills down to y=0, not below
-            areaBaselineValue={0}
+            // Now the area fills down to the computedYMin instead of always 0.
+            areaBaselineValue={computedYMin}
             colors={[chartColor]}
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              // Force the chart background to white
               background: "#fff",
               axis: {
                 ticks: {
@@ -255,7 +278,6 @@ export default function EconomicChart({
                   },
                 },
               },
-              // Remove or hide grid lines by making them white & zero-width
               grid: {
                 line: {
                   stroke: "#fff",
