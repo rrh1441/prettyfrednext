@@ -1,6 +1,6 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
+import  Card  from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
