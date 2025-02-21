@@ -3,6 +3,7 @@
 import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
+import SubscriptionCard from "@/components/SubscriptionCard";
 import Card from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -33,7 +34,7 @@ export default function HomePage() {
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
-  const gs10Query = useIndicatorData("GS10");
+  const dgs10Query = useIndicatorData("dgs10");
   const payemsQuery = useIndicatorData("PAYEMS");
   const m2slQuery = useIndicatorData("M2SL");
   const m2vQuery = useIndicatorData("M2V");
@@ -43,7 +44,7 @@ export default function HomePage() {
     { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
     { id: "FEDFUNDS", query: fedFundsQuery },
-    { id: "GS10", query: gs10Query },
+    { id: "dgs10", query: dgs10Query },
     { id: "PAYEMS", query: payemsQuery },
     { id: "M2SL", query: m2slQuery },
     { id: "M2V", query: m2vQuery },
@@ -53,7 +54,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">PrettyFRED (Next.js)</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">PrettyFRED</h1>
           <p className="text-xl text-gray-600 mb-8">
             Beautiful Economic Data Visualization
           </p>
@@ -69,31 +70,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Left info card + top chart (GDPC1) */}
+        {/* Grid with subscription card on the left and top chart (GDPC1) on the right */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Card className="p-6">
-            <h2 className="text-2xl font-semibold mb-4">Visualize Economic Data</h2>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium text-primary">Basic (Free)</h3>
-                <ul className="list-disc list-inside text-gray-600 ml-4">
-                  <li>Access to key economic indicators</li>
-                  <li>Basic visualization options</li>
-                  <li>Monthly data updates</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="text-lg font-medium text-primary">Premium</h3>
-                <ul className="list-disc list-inside text-gray-600 ml-4">
-                  <li>Advanced customization tools</li>
-                  <li>Real-time data updates</li>
-                  <li>Export data in multiple formats</li>
-                  <li>API access</li>
-                </ul>
-              </div>
-            </div>
-          </Card>
-
+          <SubscriptionCard onSubscribe={() => console.log("Subscribe CTA clicked")} />
           {gdpc1Query.isLoading ? (
             <div className="flex items-center justify-center h-80">
               Loading GDPC1...
@@ -148,7 +127,7 @@ export default function HomePage() {
               case "FEDFUNDS":
                 sub = "(Effective Federal Funds Rate)";
                 break;
-              case "DGS10":
+              case "dgs10":
                 sub = "(10-Year Treasury Constant Maturity Rate)";
                 break;
               case "PAYEMS":
