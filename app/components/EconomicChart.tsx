@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -48,13 +48,29 @@ export default function EconomicChart({
   // Note: The end index is exclusive (so max value is validData.length)
   const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
-  // 5) Filter valid data by dateRange
+  // Local state for editable date input values.
+  const [startDateInput, setStartDateInput] = useState<string>(
+    validData.length > 0 ? validData[0].date : ""
+  );
+  const [endDateInput, setEndDateInput] = useState<string>(
+    validData.length > 0 ? validData[validData.length - 1].date : ""
+  );
+
+  // 5) Whenever the dateRange changes (or validData), update the input fields.
+  useEffect(() => {
+    if (validData.length > 0) {
+      setStartDateInput(validData[dateRange[0]].date);
+      setEndDateInput(validData[dateRange[1] - 1].date);
+    }
+  }, [dateRange, validData]);
+
+  // 6) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 6) If we have fewer than 2 points, skip drawing the line
+  // 7) If we have fewer than 2 points, skip drawing the line
   const hasEnoughPoints = filteredData.length >= 2;
 
-  // 7) Build Nivo data
+  // 8) Build Nivo data
   const transformedData = hasEnoughPoints
     ? [
         {
@@ -68,14 +84,14 @@ export default function EconomicChart({
       ]
     : [];
 
-  // 8) X-axis tick logic, using date labels
+  // 9) X-axis tick logic, using date labels
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 9) Compute yMin and yMax for the chart
-  //    "auto" yMin defaults to 0, otherwise we use the specified numeric value.
+  // 10) Compute yMin and yMax for the chart.
+  //     "auto" yMin defaults to 0, otherwise we use the specified numeric value.
   const computedYMin = yMin === "auto" ? 0 : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
@@ -177,11 +193,14 @@ export default function EconomicChart({
                   <input
                     type="text"
                     list="startDates"
-                    value={validData[dateRange[0]]?.date || ""}
-                    onChange={(e) => {
-                      const newStart = validData.findIndex((d) => d.date === e.target.value);
-                      if (newStart !== -1 && newStart < dateRange[1]) {
-                        setDateRange([newStart, dateRange[1]]);
+                    value={startDateInput}
+                    onChange={(e) => setStartDateInput(e.target.value)}
+                    onBlur={(e) => {
+                      const index = validData.findIndex((d) => d.date === e.target.value);
+                      if (index !== -1 && index < dateRange[1]) {
+                        setDateRange([index, dateRange[1]]);
+                      } else {
+                        setStartDateInput(validData[dateRange[0]].date);
                       }
                     }}
                     className="border rounded p-1"
@@ -197,14 +216,14 @@ export default function EconomicChart({
                   <input
                     type="text"
                     list="endDates"
-                    value={dateRange[1] > 0 ? validData[dateRange[1] - 1]?.date || "" : ""}
-                    onChange={(e) => {
-                      const foundIndex = validData.findIndex((d) => d.date === e.target.value);
-                      if (foundIndex !== -1) {
-                        const newEnd = foundIndex + 1;
-                        if (newEnd > dateRange[0]) {
-                          setDateRange([dateRange[0], newEnd]);
-                        }
+                    value={endDateInput}
+                    onChange={(e) => setEndDateInput(e.target.value)}
+                    onBlur={(e) => {
+                      const index = validData.findIndex((d) => d.date === e.target.value);
+                      if (index !== -1 && index + 1 > dateRange[0]) {
+                        setDateRange([dateRange[0], index + 1]);
+                      } else {
+                        setEndDateInput(validData[dateRange[1] - 1].date);
                       }
                     }}
                     className="border rounded p-1"
