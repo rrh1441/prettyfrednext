@@ -1,6 +1,6 @@
 "use client";
 
-import  Card  from "@/components/ui/card";
+import Card from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -174,7 +174,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart Container: Force white background */}
+      {/* Chart Container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
