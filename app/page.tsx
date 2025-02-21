@@ -4,7 +4,6 @@ import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from '@/components/ui/SubscriptionCard';  // Updated import
-import Card from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 // transformIndicatorData = typed to accept FredRow[] | undefined
