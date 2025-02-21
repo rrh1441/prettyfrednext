@@ -126,7 +126,7 @@ export default function EconomicChart({
             onClick={() => setShowAdvanced((prev) => !prev)}
             className="mb-4 underline text-sm text-gray-800 hover:text-gray-900"
           >
-            {showAdvanced ? "Hide Customize Chart" : "Show Customize Chart"}
+            {showAdvanced ? "Hide Customize Chart" : "Customize Chart"}
           </button>
 
           {/* Customize Chart Section */}
@@ -170,48 +170,50 @@ export default function EconomicChart({
                 </label>
               </div>
 
-              {/* X-axis Date Selection */}
+              {/* X-axis Date Selection with autocomplete */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <label className="text-sm w-24">Start Date:</label>
-                  <select
-                    value={dateRange[0]}
+                  <input
+                    type="text"
+                    list="startDates"
+                    value={validData[dateRange[0]]?.date || ""}
                     onChange={(e) => {
-                      const newStart = Number(e.target.value);
-                      if (newStart < dateRange[1]) {
+                      const newStart = validData.findIndex((d) => d.date === e.target.value);
+                      if (newStart !== -1 && newStart < dateRange[1]) {
                         setDateRange([newStart, dateRange[1]]);
                       }
                     }}
                     className="border rounded p-1"
-                  >
+                  />
+                  <datalist id="startDates">
                     {validData.map((d, i) => (
-                      <option key={i} value={i}>
-                        {d.date}
-                      </option>
+                      <option key={i} value={d.date} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-sm w-24">End Date:</label>
-                  <select
-                    value={dateRange[1]}
+                  <input
+                    type="text"
+                    list="endDates"
+                    value={dateRange[1] > 0 ? validData[dateRange[1] - 1]?.date || "" : ""}
                     onChange={(e) => {
-                      const newEnd = Number(e.target.value);
-                      if (newEnd > dateRange[0]) {
-                        setDateRange([dateRange[0], newEnd]);
+                      const foundIndex = validData.findIndex((d) => d.date === e.target.value);
+                      if (foundIndex !== -1) {
+                        const newEnd = foundIndex + 1;
+                        if (newEnd > dateRange[0]) {
+                          setDateRange([dateRange[0], newEnd]);
+                        }
                       }
                     }}
                     className="border rounded p-1"
-                  >
-                    {Array.from({ length: validData.length + 1 }, (_, i) => {
-                      const label = i === validData.length ? validData[validData.length - 1].date : validData[i].date;
-                      return (
-                        <option key={i} value={i}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  />
+                  <datalist id="endDates">
+                    {validData.map((d, i) => (
+                      <option key={i} value={d.date} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
             </div>
