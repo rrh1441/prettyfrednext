@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { ResponsiveLine } from "@nivo/line";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -48,29 +48,13 @@ export default function EconomicChart({
   // Note: The end index is exclusive (so max value is validData.length)
   const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
-  // Local state for editable date input values.
-  const [startDateInput, setStartDateInput] = useState<string>(
-    validData.length > 0 ? validData[0].date : ""
-  );
-  const [endDateInput, setEndDateInput] = useState<string>(
-    validData.length > 0 ? validData[validData.length - 1].date : ""
-  );
-
-  // 5) Whenever the dateRange changes (or validData), update the input fields.
-  useEffect(() => {
-    if (validData.length > 0) {
-      setStartDateInput(validData[dateRange[0]].date);
-      setEndDateInput(validData[dateRange[1] - 1].date);
-    }
-  }, [dateRange, validData]);
-
-  // 6) Filter valid data by dateRange
+  // 5) Filter valid data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 7) If we have fewer than 2 points, skip drawing the line
+  // 6) If we have fewer than 2 points, skip drawing the line
   const hasEnoughPoints = filteredData.length >= 2;
 
-  // 8) Build Nivo data
+  // 7) Build Nivo data
   const transformedData = hasEnoughPoints
     ? [
         {
@@ -84,13 +68,13 @@ export default function EconomicChart({
       ]
     : [];
 
-  // 9) X-axis tick logic, using date labels
+  // 8) X-axis tick logic, using date labels
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 10) Compute yMin and yMax for the chart.
+  // 9) Compute yMin and yMax for the chart.
   //     "auto" yMin defaults to 0, otherwise we use the specified numeric value.
   const computedYMin = yMin === "auto" ? 0 : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
@@ -145,7 +129,7 @@ export default function EconomicChart({
             {showAdvanced ? "Hide Customize Chart" : "Customize Chart"}
           </button>
 
-          {/* Customize Chart Section */}
+          {/* Customize Chart Section (without date selection) */}
           {showAdvanced && (
             <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
               {/* Color Picker */}
@@ -184,56 +168,6 @@ export default function EconomicChart({
                 <label htmlFor="showPoints" className="text-sm">
                   Show Points
                 </label>
-              </div>
-
-              {/* X-axis Date Selection with autocomplete */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm w-24">Start Date:</label>
-                  <input
-                    type="text"
-                    list="startDates"
-                    value={startDateInput}
-                    onChange={(e) => setStartDateInput(e.target.value)}
-                    onBlur={(e) => {
-                      const index = validData.findIndex((d) => d.date === e.target.value);
-                      if (index !== -1 && index < dateRange[1]) {
-                        setDateRange([index, dateRange[1]]);
-                      } else {
-                        setStartDateInput(validData[dateRange[0]].date);
-                      }
-                    }}
-                    className="border rounded p-1"
-                  />
-                  <datalist id="startDates">
-                    {validData.map((d, i) => (
-                      <option key={i} value={d.date} />
-                    ))}
-                  </datalist>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm w-24">End Date:</label>
-                  <input
-                    type="text"
-                    list="endDates"
-                    value={endDateInput}
-                    onChange={(e) => setEndDateInput(e.target.value)}
-                    onBlur={(e) => {
-                      const index = validData.findIndex((d) => d.date === e.target.value);
-                      if (index !== -1 && index + 1 > dateRange[0]) {
-                        setDateRange([dateRange[0], index + 1]);
-                      } else {
-                        setEndDateInput(validData[dateRange[1] - 1].date);
-                      }
-                    }}
-                    className="border rounded p-1"
-                  />
-                  <datalist id="endDates">
-                    {validData.map((d, i) => (
-                      <option key={i} value={d.date} />
-                    ))}
-                  </datalist>
-                </div>
               </div>
             </div>
           )}
@@ -282,7 +216,6 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // Area fills down to the computedYMin instead of 0
             areaBaselineValue={computedYMin}
             colors={[chartColor]}
             enablePoints={showPoints}
