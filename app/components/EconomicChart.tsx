@@ -241,7 +241,7 @@ export default function EconomicChart({
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              /* Force Nivo’s chart background to white */
+              // Force the chart background to white
               background: "#fff",
               axis: {
                 ticks: {
@@ -255,10 +255,11 @@ export default function EconomicChart({
                   },
                 },
               },
+              // Remove or hide grid lines by making them white & zero-width
               grid: {
                 line: {
-                  stroke: "#e2e2e2", // <-- These faint lines might look gray
-                  strokeWidth: 1,
+                  stroke: "#fff",
+                  strokeWidth: 0,
                 },
               },
             }}
