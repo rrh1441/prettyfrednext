@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 /** A single data point. E.g. { date: 'Jan 2020', value: 123 } */
 interface DataPoint {
   date: string;
-  value: number | null; // might be null in DB, so let's handle that
+  value: number | null; // might be null in DB
 }
 
 interface EconomicChartProps {
@@ -29,7 +29,8 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Keep all data points (including null), so we can display gaps.
+  // 1) We do NOT filter out null values; we pass them as-is
+  //    so that skipNull can create gaps.
   const validData = data;
 
   // 2) If chart is not editable, override with a more "beautiful" color
@@ -53,8 +54,8 @@ export default function EconomicChart({
   // 6) If we have fewer than 2 points, skip drawing the line
   const hasEnoughPoints = filteredData.length >= 2;
 
-  // 7) Build Nivo data
-  //    - Convert null → undefined so Nivo will skip them and draw a gap instead of 0.
+  // 7) Build Nivo data array
+  //    Just pass the raw value (null stays null).
   const transformedData = hasEnoughPoints
     ? [
         {
@@ -62,7 +63,7 @@ export default function EconomicChart({
           color: chartColor,
           data: filteredData.map((d) => ({
             x: d.date,
-            y: d.value === null ? undefined : d.value,
+            y: d.value, // keep null if it is null
           })),
         },
       ]
@@ -210,7 +211,6 @@ export default function EconomicChart({
                   maximumFractionDigits: 1,
                 }),
             }}
-            // removed the `defined` prop — not supported in newer @nivo/line
             curve="linear"
             useMesh
             enableSlices={false}
@@ -225,17 +225,18 @@ export default function EconomicChart({
             theme={{
               background: "#fff",
               axis: {
-                ticks: {
-                  text: { fill: "#666" },
-                },
-                legend: {
-                  text: { fill: "#666" },
-                },
+                ticks: { text: { fill: "#666" } },
+                legend: { text: { fill: "#666" } },
               },
               grid: {
                 line: { stroke: "#fff", strokeWidth: 0 },
               },
             }}
+            // ------------------------------------------
+            // IMPORTANT PART TO SHOW NULL AS GAPS:
+            skipNull={true}
+            connectNulls={false}
+            // ------------------------------------------
           />
         )}
       </div>
