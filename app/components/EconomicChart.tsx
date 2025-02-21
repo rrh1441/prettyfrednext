@@ -83,7 +83,7 @@ export default function EconomicChart({
 
   return (
     <Card
-      // Card background forced to white
+      /* Card background forced to white */
       style={{ backgroundColor: "#fff" }}
       className={cn("p-4", isEditable && "border-primary")}
     >
@@ -241,7 +241,8 @@ export default function EconomicChart({
             pointBorderWidth={2}
             pointBorderColor={{ from: "serieColor" }}
             theme={{
-              background: "#fff", // Force Nivo’s chart background to white
+              /* Force Nivo’s chart background to white */
+              background: "#fff",
               axis: {
                 ticks: {
                   text: {
@@ -256,7 +257,7 @@ export default function EconomicChart({
               },
               grid: {
                 line: {
-                  stroke: "#e2e2e2", // or "#fff" if you want no visible grid lines
+                  stroke: "#e2e2e2", // <-- These faint lines might look gray
                   strokeWidth: 1,
                 },
               },
