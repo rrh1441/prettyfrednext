@@ -205,7 +205,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart Container */}
+      {/* Chart C ontainer */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
