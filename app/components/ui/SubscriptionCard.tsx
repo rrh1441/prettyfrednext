@@ -5,10 +5,10 @@ import Card from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionCardProps {
-  onUnlockPremium?: () => void;
+  onSubscribe?: () => void;
 }
 
-export default function SubscriptionCard({ onUnlockPremium }: SubscriptionCardProps) {
+export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps) {
   return (
     <Card className={cn("p-6 w-full h-full")}>
       <div className="flex flex-col h-full justify-between">
@@ -42,7 +42,7 @@ export default function SubscriptionCard({ onUnlockPremium }: SubscriptionCardPr
         {/* CTA Button */}
         <div className="mt-8">
           <button
-            onClick={onUnlockPremium ? onUnlockPremium : () => console.log("Unlock Premium clicked")}
+            onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Premium clicked")}
             className="w-full bg-primary text-white font-semibold py-3 px-6 rounded hover:bg-primary-dark transition"
           >
             Unlock Premium
