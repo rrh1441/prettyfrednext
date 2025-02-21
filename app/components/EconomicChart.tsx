@@ -29,8 +29,10 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Clean up raw data: remove points where .value is null
-  const validData = data.filter((d) => d.value !== null);
+  // 1) Clean up raw data: 
+  //    Previously: remove points where d.value is null
+  //    Now: Keep them, so we can display gaps
+  const validData = data;
 
   // 2) If chart is not editable, override with a more "beautiful" color
   const defaultNonEditableColor = "#7E69AB";
@@ -60,9 +62,10 @@ export default function EconomicChart({
         {
           id: title,
           color: chartColor,
+          // *** Use the raw value (including null) so that null can become a gap.
           data: filteredData.map((d) => ({
             x: d.date,
-            y: d.value ?? 0,
+            y: d.value,
           })),
         },
       ]
@@ -174,7 +177,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart Container */}
+      {/* Chart  Container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -211,6 +214,8 @@ export default function EconomicChart({
                   maximumFractionDigits: 1,
                 }),
             }}
+            // Draw a gap for null values
+            defined={(d) => d.y !== null}
             curve="linear"
             useMesh
             enableSlices={false}
