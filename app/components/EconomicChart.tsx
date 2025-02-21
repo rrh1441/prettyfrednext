@@ -29,9 +29,7 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Clean up raw data: 
-  //    Previously: remove points where d.value is null
-  //    Now: Keep them, so we can display gaps
+  // 1) Keep all data points (including null), so we can display gaps.
   const validData = data;
 
   // 2) If chart is not editable, override with a more "beautiful" color
@@ -47,38 +45,36 @@ export default function EconomicChart({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // 4) Date range slider [startIndex, endIndex]
-  // Note: The end index is exclusive (so max value is validData.length)
   const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
-  // 5) Filter valid data by dateRange
+  // 5) Filter data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
   // 6) If we have fewer than 2 points, skip drawing the line
   const hasEnoughPoints = filteredData.length >= 2;
 
   // 7) Build Nivo data
+  //    - Convert null → undefined so Nivo will skip them and draw a gap instead of 0.
   const transformedData = hasEnoughPoints
     ? [
         {
           id: title,
           color: chartColor,
-          // *** Use the raw value (including null) so that null can become a gap.
           data: filteredData.map((d) => ({
             x: d.date,
-            y: d.value,
+            y: d.value === null ? undefined : d.value,
           })),
         },
       ]
     : [];
 
-  // 8) X-axis tick logic, using date labels
+  // 8) X-axis tick logic
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 9) Compute yMin and yMax for the chart.
-  //     "auto" yMin defaults to 0, otherwise we use the specified numeric value.
+  // 9) Compute yMin and yMax
   const computedYMin = yMin === "auto" ? 0 : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
@@ -132,7 +128,7 @@ export default function EconomicChart({
             {showAdvanced ? "Hide Customize Chart" : "Customize Chart"}
           </button>
 
-          {/* Customize Chart Section (without date selection) */}
+          {/* Customize Chart Section */}
           {showAdvanced && (
             <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
               {/* Color Picker */}
@@ -177,7 +173,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart  Container */}
+      {/* Chart Container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -214,8 +210,7 @@ export default function EconomicChart({
                   maximumFractionDigits: 1,
                 }),
             }}
-            // Draw a gap for null values
-            defined={(d) => d.y !== null}
+            // removed the `defined` prop — not supported in newer @nivo/line
             curve="linear"
             useMesh
             enableSlices={false}
@@ -231,21 +226,14 @@ export default function EconomicChart({
               background: "#fff",
               axis: {
                 ticks: {
-                  text: {
-                    fill: "#666",
-                  },
+                  text: { fill: "#666" },
                 },
                 legend: {
-                  text: {
-                    fill: "#666",
-                  },
+                  text: { fill: "#666" },
                 },
               },
               grid: {
-                line: {
-                  stroke: "#fff",
-                  strokeWidth: 0,
-                },
+                line: { stroke: "#fff", strokeWidth: 0 },
               },
             }}
           />
