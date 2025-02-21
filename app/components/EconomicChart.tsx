@@ -8,18 +8,47 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-/** A single data point. E.g. { date: 'Jan 2020', value: 123 } */
+/** A single data point, e.g. { date: 'Jan 2020', value: 123 } */
 interface DataPoint {
   date: string;
-  value: number | null; // might be null in DB
+  value: number | null;
 }
 
 interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string; // default color for editable chart
+  color?: string;
   isEditable?: boolean;
+}
+
+/**
+ * Splits the data into "segments" whenever there's a null value.
+ * That way, each segment is drawn as a separate line, producing a gap.
+ */
+function createSegments(dataArray: DataPoint[]): DataPoint[][] {
+  const segments: DataPoint[][] = [];
+  let currentSegment: DataPoint[] = [];
+
+  for (const pt of dataArray) {
+    if (pt.value === null) {
+      // We hit a null -> end the current segment
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+      // Skip adding the null point (which creates the gap)
+    } else {
+      // Non-null -> accumulate in current segment
+      currentSegment.push(pt);
+    }
+  }
+  // If there's leftover data in currentSegment, push it in
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
+  return segments;
 }
 
 export default function EconomicChart({
@@ -29,8 +58,7 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) We do NOT filter out null values; we pass them as-is
-  //    so that skipNull can create gaps.
+  // 1) Keep all data (including null), rely on segmentation to handle null
   const validData = data;
 
   // 2) If chart is not editable, override with a more "beautiful" color
@@ -51,23 +79,27 @@ export default function EconomicChart({
   // 5) Filter data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 6) If we have fewer than 2 points, skip drawing the line
-  const hasEnoughPoints = filteredData.length >= 2;
+  // 6) Count how many non-null points remain
+  const totalNonNullPoints = filteredData.filter((d) => d.value !== null).length;
+  const hasEnoughPoints = totalNonNullPoints >= 2;
 
-  // 7) Build Nivo data array
-  //    Just pass the raw value (null stays null).
-  const transformedData = hasEnoughPoints
-    ? [
-        {
-          id: title,
-          color: chartColor,
-          data: filteredData.map((d) => ({
-            x: d.date,
-            y: d.value, // keep null if it is null
-          })),
-        },
-      ]
-    : [];
+  // 7) Build line segments from the data
+  const segments = createSegments(filteredData);
+
+  // Transform each segment into a separate "series" for Nivo
+  const transformedData = segments
+    // If a segment has just 1 point, Nivo won't really draw a "line", but
+    // we still pass it along (or filter if you prefer).
+    .filter((seg) => seg.length > 0)
+    .map((segment, idx) => ({
+      // Give each segment a unique ID
+      id: idx === 0 ? title : `${title} (segment ${idx + 1})`,
+      color: chartColor,
+      data: segment.map((d) => ({
+        x: d.date,
+        y: d.value, // definitely non-null
+      })),
+    }));
 
   // 8) X-axis tick logic
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
@@ -75,7 +107,7 @@ export default function EconomicChart({
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 9) Compute yMin and yMax
+  // 9) Y-axis range
   const computedYMin = yMin === "auto" ? 0 : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
@@ -120,7 +152,7 @@ export default function EconomicChart({
             </div>
           </div>
 
-          {/* Toggle Customize Chart Section */}
+          {/* Show Advanced Options */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
@@ -129,7 +161,6 @@ export default function EconomicChart({
             {showAdvanced ? "Hide Customize Chart" : "Customize Chart"}
           </button>
 
-          {/* Customize Chart Section */}
           {showAdvanced && (
             <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
               {/* Color Picker */}
@@ -232,11 +263,6 @@ export default function EconomicChart({
                 line: { stroke: "#fff", strokeWidth: 0 },
               },
             }}
-            // ------------------------------------------
-            // IMPORTANT PART TO SHOW NULL AS GAPS:
-            skipNull={true}
-            connectNulls={false}
-            // ------------------------------------------
           />
         )}
       </div>
