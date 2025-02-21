@@ -6,11 +6,14 @@ import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
 
-// transformIndicatorData = typed to accept FredRow[] | undefined
+/** 
+ * Removes the "?? 0" fallback so `null` stays `null`, allowing gaps in the chart.
+ */
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
     return { data: [], description: "Loading..." };
   }
+
   const description = rows[0].economic_indicators?.description ?? "No description";
   const data = rows.map((r) => {
     const dateObj = new Date(r.date);
@@ -18,8 +21,10 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
       year: "numeric",
       month: "short",
     });
-    return { date: label, value: r.value ?? 0 };
+    // Keep r.value as-is to preserve null (for gaps in the chart).
+    return { date: label, value: r.value };
   });
+
   return { data, description };
 }
 
@@ -38,7 +43,7 @@ export default function HomePage() {
   const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
 
-  // 8 non-editable series (using GDP instead of GDPC1)
+  // 8 non-editable series
   const subSeries = [
     { id: "GDP", query: gdpQuery },
     { id: "UNRATE", query: unrateQuery },
