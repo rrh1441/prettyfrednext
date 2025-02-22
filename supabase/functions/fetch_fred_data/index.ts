@@ -6,9 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  */
 function addOneDay(dateStr: string): string {
   const d = new Date(dateStr);
-  // Increase date by 1
   d.setDate(d.getDate() + 1);
-  // Convert back to "YYYY-MM-DD"
   return d.toISOString().split("T")[0];
 }
 
@@ -16,8 +14,6 @@ serve(async () => {
   const SUPABASE_URL = Deno.env.get("URL")!;
   const SUPABASE_SERVICE_ROLE = Deno.env.get("SERVICE_ROLE")!;
   const FRED_API_KEY = Deno.env.get("FRED_API_KEY")!;
-
-  // Create a Supabase client with service role
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
 
   try {
@@ -33,20 +29,37 @@ serve(async () => {
       return new Response("No economic_indicators found.", { status: 200 });
     }
 
-    console.log(`Found ${indicators.length} indicators. Processing 1 at a time, with 10s delay each.`);
+    // 2) Load offset from function_state table
+    let currentOffset = 0;
+    {
+      const { data: stateRow, error: stateErr } = await supabase
+        .from("function_state")
+        .select("current_offset")
+        .eq("id", 1)
+        .single();
 
-    // 2) Process in single-series chunks
-    const chunkSize = 1;             // <--- changed to 1
-    const chunkDelayMs = 10_000;     // <--- 10-second delay
+      if (stateErr) {
+        console.error("Error reading function_state:", stateErr.message);
+      } else if (stateRow) {
+        currentOffset = stateRow.current_offset; // e.g. 0 initially
+      }
+    }
 
-    for (let i = 0; i < indicators.length; i += chunkSize) {
-      // Pull exactly 1 indicator
+    console.log(
+      `Found ${indicators.length} indicators. Resuming from offset=${currentOffset}, 1 at a time, with 10s delay.`
+    );
+
+    const chunkSize = 1;
+    const chunkDelayMs = 10_000;
+
+    // 3) Start from currentOffset
+    for (let i = currentOffset; i < indicators.length; i += chunkSize) {
       const chunk = indicators.slice(i, i + chunkSize);
 
       for (const { series_id } of chunk) {
-        console.log(`Checking new data for series_id: ${series_id}`);
+        console.log(`(i=${i}) Checking new data for series_id: ${series_id}`);
 
-        // 2a) Find the most recent date we have for this series
+        // 3a) Find most recent date
         const { data: latestRows, error: latestErr } = await supabase
           .from("fred_data")
           .select("date")
@@ -59,18 +72,16 @@ serve(async () => {
           continue;
         }
 
-        // By default, if we have no rows, let's start from "1900-01-01"
         let observationStart = "1900-01-01";
-
         if (latestRows && latestRows.length > 0) {
-          const lastDate = latestRows[0].date; // e.g. "2023-12-31"
-          observationStart = addOneDay(lastDate); // e.g. "2024-01-01"
+          observationStart = addOneDay(latestRows[0].date);
         }
 
         console.log(`Fetching new observations for ${series_id} since ${observationStart}`);
 
-        // 2b) Fetch from FRED
-        const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${series_id}&observation_start=${observationStart}&api_key=${FRED_API_KEY}&file_type=json`;
+        // 3b) Fetch from FRED
+        const fredUrl =
+          `https://api.stlouisfed.org/fred/series/observations?series_id=${series_id}&observation_start=${observationStart}&api_key=${FRED_API_KEY}&file_type=json`;
         const resp = await fetch(fredUrl);
         const result = await resp.json();
 
@@ -79,7 +90,7 @@ serve(async () => {
           continue;
         }
 
-        // 2c) Upsert new observations
+        // 3c) Upsert
         const observations = result.observations.map((obs: any) => ({
           series_id,
           date: obs.date,
@@ -96,21 +107,32 @@ serve(async () => {
           .upsert(observations, { onConflict: ["series_id", "date"] });
 
         if (upsertErr) {
-          console.error(`Error inserting new data for ${series_id}: ${upsertErr.message}`);
+          console.error(`Error inserting data for ${series_id}: ${upsertErr.message}`);
         } else {
-          console.log(`Upserted ${observations.length} new rows for ${series_id}`);
+          console.log(`Upserted ${observations.length} rows for ${series_id}`);
         }
       }
 
-      console.log(`Finished chunk [${i}..${i + chunk.length - 1}] of ${indicators.length} total. Pausing ${chunkDelayMs/1000}s...`);
+      console.log(`Finished chunk [i=${i}] out of ${indicators.length}. Pausing ${chunkDelayMs / 1000}s...`);
 
-      // Pause 10 seconds before the next indicator, if any
-      if (i + chunkSize < indicators.length) {
+      // 4) SAVE new offset so we can resume if we stop
+      const newOffset = i + chunkSize;
+      const { error: offsetErr } = await supabase
+        .from("function_state")
+        .update({ current_offset: newOffset })
+        .eq("id", 1);
+
+      if (offsetErr) {
+        console.error("Error saving offset to function_state:", offsetErr.message);
+      }
+
+      // 5) Delay if there's more to do
+      if (newOffset < indicators.length) {
         await new Promise((resolve) => setTimeout(resolve, chunkDelayMs));
       }
     }
 
-    return new Response("Done fetching big historical data, 1 series at a time!", {
+    return new Response("Done fetching big historical data with offset resume!", {
       status: 200,
     });
   } catch (err) {
