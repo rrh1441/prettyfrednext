@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback
+} from "react";
 import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabaseClient";
 import EconomicChart from "@/components/EconomicChart";
@@ -9,14 +14,22 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { SeriesData } from "./page";
 
-/** The leftover items we haven't loaded row data for yet. */
+/** Metadata for leftover items we haven't fetched row data for yet. */
 interface SeriesMeta {
   series_id: string;
   description: string;
 }
 
+/** Row type from 'fred_data'. */
+interface FredRow {
+  date: string;
+  value: number | null;
+}
+
 interface MembersClientProps {
-  initialSeries: SeriesData[]; // first 10 fully loaded
+  /** The first 10 series (fully loaded) from SSR. */
+  initialSeries: SeriesData[];
+  /** The rest 90+ series, only metadata. We lazy-load row data. */
   remainingSeriesMetadata: SeriesMeta[];
 }
 
@@ -24,73 +37,24 @@ export default function MembersClient({
   initialSeries,
   remainingSeriesMetadata,
 }: MembersClientProps) {
-  // All loaded data (SSR + anything we fetch via infinite scroll or search)
+  // 1) State: loaded series (row data), pinned, search, leftover
   const [loadedSeries, setLoadedSeries] = useState<SeriesData[]>(initialSeries);
-
-  // The leftover metadata to load in chunks of 10
   const [unused, setUnused] = useState<SeriesMeta[]>(remainingSeriesMetadata);
-
-  // Keep track of pinned IDs
   const [pinnedIDs, setPinnedIDs] = useState<string[]>([]);
-
-  // Search term
   const [searchTerm, setSearchTerm] = useState("");
 
-  // For infinite scroll, we watch this "sentinel" ref
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // Chart refs for export
+  // 2) Chart refs for exporting
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Are we currently loading the next chunk so we don't double-load?
+  // 3) Infinite scroll
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // ---- Intersection Observer for infinite scrolling
-  useEffect(() => {
-    if (!sentinelRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const firstEntry = entries[0];
-        if (firstEntry.isIntersecting) {
-          // We hit the bottom => try loading next chunk
-          loadNextChunk();
-        }
-      },
-      { threshold: 1.0 } // fully in view
-    );
-
-    observer.observe(sentinelRef.current);
-
-    return () => {
-      if (sentinelRef.current) {
-        observer.unobserve(sentinelRef.current);
-      }
-    };
-  }, [sentinelRef.current, unused, loadingMore]);
-
-  // This loads the next chunk of 10 from "unused"
-  async function loadNextChunk() {
-    if (loadingMore) return; // already loading
-    if (unused.length === 0) return; // nothing left to load
-
-    setLoadingMore(true);
-
-    const chunk = unused.slice(0, 10);
-    // Fetch row data for these chunk items
-    const newData = await fetchSeriesRows(chunk);
-
-    // Add them to loaded
-    setLoadedSeries((prev) => [...prev, ...newData]);
-
-    // Remove them from unused
-    setUnused((prev) => prev.slice(10));
-
-    setLoadingMore(false);
-  }
-
-  // Helper: fetch row data from "fred_data" for an array of series metas
-  async function fetchSeriesRows(metas: SeriesMeta[]): Promise<SeriesData[]> {
+  /** 
+   * Helper: fetch row data for a given list of series metadata.
+   * Returns an array of SeriesData.
+   */
+  const fetchSeriesRows = useCallback(async (metas: SeriesMeta[]): Promise<SeriesData[]> => {
     const results: SeriesData[] = [];
     for (const m of metas) {
       const { data: rows, error } = await supabase
@@ -103,10 +67,13 @@ export default function MembersClient({
         console.warn("Error fetching", m.series_id, error.message);
         continue;
       }
-      const chartData = (rows ?? []).map((r: any) => ({
+
+      // Use FredRow type instead of any
+      const chartData = (rows as FredRow[] ?? []).map((r) => ({
         date: r.date,
         value: r.value,
       }));
+
       results.push({
         series_id: m.series_id,
         description: m.description,
@@ -114,9 +81,50 @@ export default function MembersClient({
       });
     }
     return results;
-  }
+  }, []);
 
-  // ---- SEARCH: fetch new series if not already loaded
+  /**
+   * loadNextChunk: fetch the next 10 from 'unused' (if available)
+   * and append them to loadedSeries.
+   */
+  const loadNextChunk = useCallback(async () => {
+    if (loadingMore || unused.length === 0) return;
+    setLoadingMore(true);
+
+    // Grab next 10 metadata
+    const chunk = unused.slice(0, 10);
+    const newData = await fetchSeriesRows(chunk);
+
+    setLoadedSeries((prev) => [...prev, ...newData]);
+    setUnused((prev) => prev.slice(10));
+    setLoadingMore(false);
+  }, [loadingMore, unused, fetchSeriesRows]);
+
+  // 4) Intersection Observer effect for infinite scrolling
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting) {
+          // We reached the sentinel => load next chunk
+          loadNextChunk();
+        }
+      },
+      { threshold: 1.0 } // fully in view
+    );
+
+    observer.observe(node);
+
+    // Cleanup
+    return () => {
+      observer.unobserve(node);
+    };
+  }, [loadNextChunk]); // depends on stable callback
+
+  // 5) Search logic. On click, fetch from supabase -> add to loadedSeries
   async function handleSearch() {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return;
@@ -124,7 +132,7 @@ export default function MembersClient({
     const { data: found, error } = await supabase
       .from("economic_indicators")
       .select("series_id, description")
-      .ilike("series_id", `%${term}%`) // or .ilike("description", `%${term}%`)
+      .ilike("series_id", `%${term}%`)
       .limit(20);
 
     if (error || !found) {
@@ -132,11 +140,10 @@ export default function MembersClient({
       return;
     }
 
-    // Filter out series we already loaded
+    // Filter out ones we already have
     const toFetch: SeriesMeta[] = [];
     for (const f of found) {
       if (!loadedSeries.some((ls) => ls.series_id === f.series_id)) {
-        // not loaded
         toFetch.push({ series_id: f.series_id, description: f.description });
       }
     }
@@ -144,19 +151,21 @@ export default function MembersClient({
     if (toFetch.length > 0) {
       const newlyFetched = await fetchSeriesRows(toFetch);
       setLoadedSeries((prev) => [...prev, ...newlyFetched]);
-      // Also remove them from 'unused' if they exist
-      setUnused((prev) => prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id)));
+      // remove any from 'unused'
+      setUnused((prev) =>
+        prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id))
+      );
     }
   }
 
-  // ---- Pin logic
+  // 6) Pin logic
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
       prev.includes(seriesId) ? prev.filter((id) => id !== seriesId) : [...prev, seriesId]
     );
   }
 
-  // ---- Filter + pinned sorting
+  // 7) Filter and order pinned vs unpinned
   const term = searchTerm.toLowerCase().trim();
   let displayed = loadedSeries;
   if (term) {
@@ -165,11 +174,10 @@ export default function MembersClient({
       return combined.includes(term);
     });
   }
-
   const pinned = displayed.filter((s) => pinnedIDs.includes(s.series_id));
   const unpinned = displayed.filter((s) => !pinnedIDs.includes(s.series_id));
 
-  // ---- Export logic
+  // 8) Export logic (PNG/JPG/CSV)
   async function handleExportPng(seriesId: string) {
     const node = chartRefs.current[seriesId];
     if (!node) return;
@@ -207,14 +215,14 @@ export default function MembersClient({
     link.click();
   }
 
-  // ---- Render
+  // 9) Render
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Premium Dashboard (Infinite Scroll)</h1>
 
       <div className="flex gap-2 mb-4">
         <Input
-          placeholder="Search series_id or description..."
+          placeholder="Search by series_id or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -223,7 +231,7 @@ export default function MembersClient({
         </Button>
       </div>
 
-      {/* PINNED */}
+      {/* PINNED CHARTS */}
       {pinned.length > 0 && (
         <>
           <h2 className="text-xl font-semibold mb-2">Pinned Charts</h2>
@@ -268,7 +276,7 @@ export default function MembersClient({
         </>
       )}
 
-      {/* UNPINNED */}
+      {/* UNPINNED CHARTS */}
       <h2 className="text-xl font-semibold mb-2">All Charts</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {unpinned.map((series) => (
@@ -309,9 +317,10 @@ export default function MembersClient({
         ))}
       </div>
 
-      {/* INFINITE SCROL L SENTINEL */}
+      {/* Our invisible "sentinel" div for infinite scroll */}
       <div ref={sentinelRef} className="h-10 w-full" />
 
+      {/* Optional loading indicator */}
       {loadingMore && <div className="text-center mt-2">Loading more...</div>}
     </div>
   );
