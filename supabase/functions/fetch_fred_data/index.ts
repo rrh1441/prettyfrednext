@@ -41,16 +41,19 @@ serve(async () => {
       if (stateErr) {
         console.error("Error reading function_state:", stateErr.message);
       } else if (stateRow) {
-        currentOffset = stateRow.current_offset; // e.g. 0 initially
+        currentOffset = stateRow.current_offset || 0;
+        console.log(`Read current_offset from function_state: ${currentOffset}`);
+      } else {
+        console.log("No state row found in function_state, default offset=0");
       }
     }
 
     console.log(
-      `Found ${indicators.length} indicators. Resuming from offset=${currentOffset}, 1 at a time, with 10s delay.`
+      `Found ${indicators.length} indicators. Starting at offset=${currentOffset}, chunkSize=1, 2s delay.`
     );
 
     const chunkSize = 1;
-    const chunkDelayMs = 10_000;
+    const chunkDelayMs = 2_000;
 
     // 3) Start from currentOffset
     for (let i = currentOffset; i < indicators.length; i += chunkSize) {
@@ -59,7 +62,7 @@ serve(async () => {
       for (const { series_id } of chunk) {
         console.log(`(i=${i}) Checking new data for series_id: ${series_id}`);
 
-        // 3a) Find most recent date
+        // 3a) Find most recent date in fred_data
         const { data: latestRows, error: latestErr } = await supabase
           .from("fred_data")
           .select("date")
@@ -113,9 +116,7 @@ serve(async () => {
         }
       }
 
-      console.log(`Finished chunk [i=${i}] out of ${indicators.length}. Pausing ${chunkDelayMs / 1000}s...`);
-
-      // 4) SAVE new offset so we can resume if we stop
+      // Save offset **immediately** after each single-series chunk
       const newOffset = i + chunkSize;
       const { error: offsetErr } = await supabase
         .from("function_state")
@@ -124,15 +125,17 @@ serve(async () => {
 
       if (offsetErr) {
         console.error("Error saving offset to function_state:", offsetErr.message);
+      } else {
+        console.log(`Updated current_offset to ${newOffset}`);
       }
 
-      // 5) Delay if there's more to do
+      console.log(`Finished i=${i}. Pausing ${chunkDelayMs / 1000}s...`);
       if (newOffset < indicators.length) {
         await new Promise((resolve) => setTimeout(resolve, chunkDelayMs));
       }
     }
 
-    return new Response("Done fetching big historical data with offset resume!", {
+    return new Response("Done fetching big historical data with immediate offset update!", {
       status: 200,
     });
   } catch (err) {
