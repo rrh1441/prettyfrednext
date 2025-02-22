@@ -309,7 +309,7 @@ export default function MembersClient({
         ))}
       </div>
 
-      {/* INFINITE SCROLL SENTINEL */}
+      {/* INFINITE SCROL L SENTINEL */}
       <div ref={sentinelRef} className="h-10 w-full" />
 
       {loadingMore && <div className="text-center mt-2">Loading more...</div>}
