@@ -4,7 +4,8 @@ import React, {
   useState,
   useRef,
   useEffect,
-  useCallback
+  useCallback,
+  FormEvent
 } from "react";
 import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabaseClient";
@@ -14,46 +15,46 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { SeriesData } from "./page";
 
-/** Metadata for leftover items we haven't fetched row data for yet. */
 interface SeriesMeta {
   series_id: string;
   description: string;
 }
 
-/** Row type from 'fred_data'. */
+/** Row shape from 'fred_data'. */
 interface FredRow {
   date: string;
   value: number | null;
 }
 
 interface MembersClientProps {
-  /** The first 10 series (fully loaded) from SSR. */
-  initialSeries: SeriesData[];
-  /** The rest 90+ series, only metadata. We lazy-load row data. */
-  remainingSeriesMetadata: SeriesMeta[];
+  initialSeries: SeriesData[];            // first 10 (loaded) from SSR
+  remainingSeriesMetadata: SeriesMeta[];  // the rest (metadata only)
+  allSeriesList: SeriesMeta[];           // entire full list for "Show All Series" popup
 }
 
 export default function MembersClient({
   initialSeries,
   remainingSeriesMetadata,
+  allSeriesList,
 }: MembersClientProps) {
-  // 1) State: loaded series (row data), pinned, search, leftover
+  // 1) State: loaded series, pinned IDs, leftover, search
   const [loadedSeries, setLoadedSeries] = useState<SeriesData[]>(initialSeries);
   const [unused, setUnused] = useState<SeriesMeta[]>(remainingSeriesMetadata);
   const [pinnedIDs, setPinnedIDs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 2) Chart refs for exporting
+  // Popups
+  const [showAllSeriesModal, setShowAllSeriesModal] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+
+  // 2) Chart Refs for exporting images
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // 3) Infinite scroll
+  // 3) Infinite Scroll
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  /** 
-   * Helper: fetch row data for a given list of series metadata.
-   * Returns an array of SeriesData.
-   */
+  // ---- Helper to fetch row data from Supabase
   const fetchSeriesRows = useCallback(async (metas: SeriesMeta[]): Promise<SeriesData[]> => {
     const results: SeriesData[] = [];
     for (const m of metas) {
@@ -67,13 +68,10 @@ export default function MembersClient({
         console.warn("Error fetching", m.series_id, error.message);
         continue;
       }
-
-      // Use FredRow type instead of any
       const chartData = (rows as FredRow[] ?? []).map((r) => ({
         date: r.date,
         value: r.value,
       }));
-
       results.push({
         series_id: m.series_id,
         description: m.description,
@@ -83,24 +81,21 @@ export default function MembersClient({
     return results;
   }, []);
 
-  /**
-   * loadNextChunk: fetch the next 10 from 'unused' (if available)
-   * and append them to loadedSeries.
-   */
+  // ---- loadNextChunk: fetch next 10 from unused
   const loadNextChunk = useCallback(async () => {
     if (loadingMore || unused.length === 0) return;
     setLoadingMore(true);
 
-    // Grab next 10 metadata
     const chunk = unused.slice(0, 10);
     const newData = await fetchSeriesRows(chunk);
 
     setLoadedSeries((prev) => [...prev, ...newData]);
     setUnused((prev) => prev.slice(10));
+
     setLoadingMore(false);
   }, [loadingMore, unused, fetchSeriesRows]);
 
-  // 4) Intersection Observer effect for infinite scrolling
+  // IntersectionObserver for infinite scrolling
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;
@@ -109,22 +104,20 @@ export default function MembersClient({
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting) {
-          // We reached the sentinel => load next chunk
+          // load next chunk
           loadNextChunk();
         }
       },
-      { threshold: 1.0 } // fully in view
+      { threshold: 0.25 } // more forgiving than 1.0
     );
 
     observer.observe(node);
-
-    // Cleanup
     return () => {
       observer.unobserve(node);
     };
-  }, [loadNextChunk]); // depends on stable callback
+  }, [loadNextChunk]);
 
-  // 5) Search logic. On click, fetch from supabase -> add to loadedSeries
+  // ---- Searching
   async function handleSearch() {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return;
@@ -132,7 +125,7 @@ export default function MembersClient({
     const { data: found, error } = await supabase
       .from("economic_indicators")
       .select("series_id, description")
-      .ilike("series_id", `%${term}%`)
+      .or(`series_id.ilike.%${term}%,description.ilike.%${term}%`)
       .limit(20);
 
     if (error || !found) {
@@ -140,7 +133,7 @@ export default function MembersClient({
       return;
     }
 
-    // Filter out ones we already have
+    // Filter out items we already have loaded
     const toFetch: SeriesMeta[] = [];
     for (const f of found) {
       if (!loadedSeries.some((ls) => ls.series_id === f.series_id)) {
@@ -152,32 +145,30 @@ export default function MembersClient({
       const newlyFetched = await fetchSeriesRows(toFetch);
       setLoadedSeries((prev) => [...prev, ...newlyFetched]);
       // remove any from 'unused'
-      setUnused((prev) =>
-        prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id))
-      );
+      setUnused((prev) => prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id)));
     }
   }
 
-  // 6) Pin logic
+  // ---- Pin logic
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
       prev.includes(seriesId) ? prev.filter((id) => id !== seriesId) : [...prev, seriesId]
     );
   }
 
-  // 7) Filter and order pinned vs unpinned
+  // ---- final displayed list
   const term = searchTerm.toLowerCase().trim();
   let displayed = loadedSeries;
   if (term) {
-    displayed = displayed.filter((s) => {
-      const combined = (s.series_id + s.description).toLowerCase();
-      return combined.includes(term);
-    });
+    displayed = displayed.filter((s) =>
+      (s.series_id + s.description).toLowerCase().includes(term)
+    );
   }
+
   const pinned = displayed.filter((s) => pinnedIDs.includes(s.series_id));
   const unpinned = displayed.filter((s) => !pinnedIDs.includes(s.series_id));
 
-  // 8) Export logic (PNG/JPG/CSV)
+  // ---- Export logic
   async function handleExportPng(seriesId: string) {
     const node = chartRefs.current[seriesId];
     if (!node) return;
@@ -215,12 +206,37 @@ export default function MembersClient({
     link.click();
   }
 
-  // 9) Render
+  // ---- Request a data series form
+  async function handleRequestSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const requested_series_id = formData.get("requested_series_id")?.toString() || "";
+    const notes = formData.get("notes")?.toString() || "";
+
+    if (!requested_series_id) {
+      alert("Please enter a series ID!");
+      return;
+    }
+
+    // Insert into 'series_requests'
+    const { error } = await supabase
+      .from("series_requests")
+      .insert([{ requested_series_id, notes }]);
+
+    if (error) {
+      alert(`Error submitting request: ${error.message}`);
+    } else {
+      alert("Request submitted successfully!");
+      setShowRequestForm(false);
+    }
+  }
+
+  // ---- Render
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Premium Dashboard (Infinite Scroll)</h1>
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         <Input
           placeholder="Search by series_id or description..."
           value={searchTerm}
@@ -229,9 +245,15 @@ export default function MembersClient({
         <Button variant="outline" onClick={handleSearch}>
           Search
         </Button>
+        <Button variant="outline" onClick={() => setShowAllSeriesModal(true)}>
+          Show All Series
+        </Button>
+        <Button onClick={() => setShowRequestForm(true)}>
+          Request a Data Series
+        </Button>
       </div>
 
-      {/* PINNED CHARTS */}
+      {/* PINNED */}
       {pinned.length > 0 && (
         <>
           <h2 className="text-xl font-semibold mb-2">Pinned Charts</h2>
@@ -246,6 +268,7 @@ export default function MembersClient({
                     Unpin
                   </Button>
                 </div>
+
                 <div
                   ref={(el) => {
                     chartRefs.current[series.series_id] = el;
@@ -259,6 +282,7 @@ export default function MembersClient({
                     isEditable
                   />
                 </div>
+
                 <div className="flex gap-2 mt-2">
                   <Button variant="outline" onClick={() => handleExportPng(series.series_id)}>
                     PNG
@@ -276,7 +300,7 @@ export default function MembersClient({
         </>
       )}
 
-      {/* UNPINNED CHARTS */}
+      {/* UNPINNED */}
       <h2 className="text-xl font-semibold mb-2">All Charts</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {unpinned.map((series) => (
@@ -289,6 +313,7 @@ export default function MembersClient({
                 {pinnedIDs.includes(series.series_id) ? "Unpin" : "Pin"}
               </Button>
             </div>
+
             <div
               ref={(el) => {
                 chartRefs.current[series.series_id] = el;
@@ -302,6 +327,7 @@ export default function MembersClient({
                 isEditable
               />
             </div>
+
             <div className="flex gap-2 mt-2">
               <Button variant="outline" onClick={() => handleExportPng(series.series_id)}>
                 PNG
@@ -317,11 +343,69 @@ export default function MembersClient({
         ))}
       </div>
 
-      {/* Our invisible "sentinel" div for infinite scroll */}
+      {/* Infinite scroll sentinel */}
       <div ref={sentinelRef} className="h-10 w-full" />
-
-      {/* Optional loading indicator */}
       {loadingMore && <div className="text-center mt-2">Loading more...</div>}
+
+      {/* SHOW ALL SERIES MODAL */}
+      {showAllSeriesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded p-4 w-full max-w-xl relative">
+            <h2 className="text-xl font-semibold mb-4">All Series in Database</h2>
+            <ul className="max-h-96 overflow-y-auto list-disc pl-5">
+              {allSeriesList.map((s) => (
+                <li key={s.series_id} className="mb-1">
+                  <strong>{s.series_id}</strong> - {s.description}
+                </li>
+              ))}
+            </ul>
+            <Button
+              className="mt-4"
+              variant="outline"
+              onClick={() => setShowAllSeriesModal(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* REQUEST A DATA SERIES MODAL */}
+      {showRequestForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded p-4 w-full max-w-md relative">
+            <h2 className="text-xl font-semibold mb-4">Request a Data Series</h2>
+            <form onSubmit={handleRequestSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Desired Series ID
+                </label>
+                <Input type="text" name="requested_series_id" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Notes / Rationale
+                </label>
+                <textarea
+                  name="notes"
+                  className="w-full border border-gray-300 rounded px-2 py-1"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setShowRequestForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Submit Request</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
