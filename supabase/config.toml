@@ -1,0 +1,301 @@
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+
+################################################################################
+#  PROJECT IDENTIFIER
+#  This is a unique string used to distinguish different Supabase projects on
+#  the same host. If you run `supabase init` locally, it defaults to your
+#  directory name, but to match your remote project, set it to your actual
+#  project ref from the Supabase dashboard.
+################################################################################
+project_id = "ltiuuauafphpwewqktdv"
+
+################################################################################
+#  API CONFIGURATION
+################################################################################
+[api]
+# Set enabled = true to allow the PostgREST API to run.
+enabled = true
+
+# Port to use for the API URL locally.
+port = 54321
+
+# Schemas to expose in your API. By default, "public" and "graphql_public".
+schemas = ["public", "graphql_public"]
+
+# Additional schemas to add to the PostgREST search_path, if needed.
+extra_search_path = ["public", "extensions"]
+
+# The maximum number of rows returned from a single request,
+# to limit payload size for accidental or malicious requests.
+max_rows = 1000
+
+[api.tls]
+# Enable HTTPS endpoints locally using a self-signed certificate.
+# Typically disabled for local dev.
+enabled = false
+
+################################################################################
+#  DATABASE CONFIGURATION
+################################################################################
+[db]
+# Port to use for the local Postgres database URL.
+port = 54322
+
+# Port used by "db diff" command to initialize the shadow database.
+shadow_port = 54320
+
+# The database major version to use. This must match your remote db version
+# (check with SHOW server_version;).
+major_version = 15
+
+[db.pooler]
+# Connection pooler config. Often disabled in local dev.
+enabled = false
+# Port for local connection pooler
+port = 54329
+# Specifies the pooler mode: "transaction" or "session".
+pool_mode = "transaction"
+# Server connections to allow per user/db pair.
+default_pool_size = 20
+# Max client connections allowed.
+max_client_conn = 100
+
+# [db.vault]
+# secret_key = "env(SECRET_VALUE)"
+
+################################################################################
+#  SEED CONFIGURATION
+################################################################################
+[db.seed]
+# If enabled, seeds the db after migrations during a "db reset".
+enabled = true
+# List of seed files to load, e.g. "supabase/seeds/*.sql"
+sql_paths = ["./seed.sql"]
+
+################################################################################
+#  REALTIME CONFIGURATION
+################################################################################
+[realtime]
+enabled = true
+# ip_version = "IPv6" # e.g. if you prefer IPv6
+# max_header_length = 4096 # default for request headers
+
+################################################################################
+#  STUDIO CONFIGURATION
+################################################################################
+[studio]
+enabled = true
+# Port for Supabase Studio
+port = 54323
+# External URL of the API server that the frontend connects to
+api_url = "http://127.0.0.1"
+# If you want to use Supabase AI in the Studio, set your OpenAI API key
+openai_api_key = "env(OPENAI_API_KEY)"
+
+################################################################################
+#  INBUCKET CONFIGURATION (LOCAL DEV EMAIL TEST)
+################################################################################
+[inbucket]
+enabled = true
+# Port for the Inbucket web interface
+port = 54324
+# If you want to test sending actual emails:
+# smtp_port = 54325
+# pop3_port = 54326
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+################################################################################
+#  STORAGE CONFIGURATION
+################################################################################
+[storage]
+enabled = true
+# The maximum file size for uploads, e.g. "50MB"
+file_size_limit = "50MiB"
+
+# [storage.image_transformation]
+# enabled = true  # only on Pro plan
+
+# Example bucket config:
+# [storage.buckets.images]
+# public = false
+# file_size_limit = "50MiB"
+# allowed_mime_types = ["image/png", "image/jpeg"]
+# objects_path = "./images"
+
+################################################################################
+#  AUTH CONFIGURATION
+################################################################################
+[auth]
+enabled = true
+# The base URL of your site, used for emails & allow-list redirects
+site_url = "http://127.0.0.1:3000"
+
+# Additional *exact* redirect URLs that auth providers can redirect to
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+
+# How long tokens are valid (in seconds). e.g. 3600 = 1 hour, up to 604800 = 1 week
+jwt_expiry = 3600
+
+# If disabled, refresh tokens never expire.
+enable_refresh_token_rotation = true
+
+# Allows refresh tokens to be reused after expiry, up to this interval in seconds
+# (requires enable_refresh_token_rotation = true).
+refresh_token_reuse_interval = 10
+
+# Whether new user signups are allowed
+enable_signup = true
+
+# Whether anonymous sign-ins are allowed
+enable_anonymous_sign_ins = false
+
+# Testing manual linking of accounts
+enable_manual_linking = false
+
+# Minimum password length (6, 8, etc.)
+minimum_password_length = 6
+
+# Additional password requirements (e.g. "lower_upper_letters_digits_symbols")
+password_requirements = ""
+
+################################################################################
+#  AUTH EMAIL
+################################################################################
+[auth.email]
+# Allow user signups via email
+enable_signup = true
+# Double confirm changes (both old & new emails)
+double_confirm_changes = true
+# Email confirmation needed before signing in?
+enable_confirmations = false
+# Reauthentication needed for password changes?
+secure_password_change = false
+# Minimum time between sending another signup confirmation or reset email
+max_frequency = "1s"
+# The length of the email OTP
+otp_length = 6
+# Expiry for email OTP in seconds (default 1 hour)
+otp_expiry = 3600
+
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.sendgrid.net"
+# port = 587
+# user = "apikey"
+# pass = "env(SENDGRID_API_KEY)"
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+# [auth.email.template.invite]
+# subject = "You have been invited"
+# content_path = "./supabase/templates/invite.html"
+
+################################################################################
+#  AUTH SMS
+################################################################################
+[auth.sms]
+# Whether user signups via SMS are allowed
+enable_signup = false
+# Confirm phone # before sign in?
+enable_confirmations = false
+# Template for sending OTP
+template = "Your code is {{ .Code }}"
+# Minimum time between sending another sms
+max_frequency = "5s"
+
+# [auth.sms.test_otp]
+# 4152127777 = "123456"
+
+################################################################################
+#  AUTH: SMS TWILIO
+################################################################################
+[auth.sms.twilio]
+enabled = false
+account_sid = ""
+message_service_sid = ""
+# Use environment variable for real Twilio auth token
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
+################################################################################
+#  AUTH: MFA
+################################################################################
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+otp_length = 6
+template = "Your code is {{ .Code }}"
+max_frequency = "5s"
+
+# [auth.mfa.web_authn]
+# enroll_enabled = true
+# verify_enabled = true
+
+################################################################################
+#  AUTH: EXTERNAL PROVIDERS
+################################################################################
+[auth.external.apple]
+enabled = false
+client_id = ""
+secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+redirect_uri = ""
+url = ""
+skip_nonce_check = false
+
+[auth.third_party.firebase]
+enabled = false
+
+[auth.third_party.auth0]
+enabled = false
+
+[auth.third_party.aws_cognito]
+enabled = false
+
+################################################################################
+#  EDGE RUNTIME CONFIG
+################################################################################
+[edge_runtime]
+enabled = true
+# "oneshot" for hot reload; "per_worker" for load testing
+policy = "oneshot"
+# Inspector port for debugging edge functions
+inspector_port = 8083
+
+################################################################################
+#  ANALYTICS
+################################################################################
+[analytics]
+enabled = true
+port = 54327
+# "postgres" or "bigquery"
+backend = "postgres"
+
+################################################################################
+#  EXPERIMENTAL
+#  May be deprecated at any time
+################################################################################
+[experimental]
+# OrioleDB for S3
+orioledb_version = ""
+s3_host = "env(S3_HOST)"
+s3_region = "env(S3_REGION)"
+s3_access_key = "env(S3_ACCESS_KEY)"
+s3_secret_key = "env(S3_SECRET_KEY)"
+
+################################################################################
+#  FUNCTIONS CONFIG
+#  Each function is configured as [functions.<function-name>].
+#  (We removed any scheduling lines to avoid parse errors.)
+################################################################################
+
+[functions.fetch_fred_data]
+# If you don't require JWT verification, set false
+verify_jwt = false
