@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-/** A single data point, e.g. { date: 'Jan 2020', value: 123 } */
+/** A single data point */
 interface DataPoint {
   date: string;
   value: number | null;
@@ -23,8 +23,7 @@ interface EconomicChartProps {
 }
 
 /**
- * Splits the data into "segments" whenever there's a null value.
- * That way, each segment is drawn as a separate line, producing a gap.
+ * Splits data into segments whenever there's a null value.
  */
 function createSegments(dataArray: DataPoint[]): DataPoint[][] {
   const segments: DataPoint[][] = [];
@@ -32,22 +31,18 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
 
   for (const pt of dataArray) {
     if (pt.value === null) {
-      // We hit a null -> end the current segment
       if (currentSegment.length > 0) {
         segments.push(currentSegment);
         currentSegment = [];
       }
-      // Skip adding the null point (which creates the gap)
     } else {
-      // Non-null -> accumulate in current segment
       currentSegment.push(pt);
     }
   }
-  // If there's leftover data in currentSegment, push it in
+
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
-
   return segments;
 }
 
@@ -58,14 +53,14 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Keep all data (including null), rely on segmentation to handle null
+  // Keep all data, rely on segmentation for null
   const validData = data;
 
-  // 2) If chart is not editable, override with a more "beautiful" color
+  // If not editable, override color
   const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
-  // 3) Editable states
+  // Editable state
   const [title, setTitle] = useState(initialTitle);
   const [chartColor, setChartColor] = useState(chartColorDefault);
   const [yMin, setYMin] = useState<string>("auto");
@@ -73,42 +68,44 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // 4) Date range slider [startIndex, endIndex]
+  // Date range slider
   const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
 
-  // 5) Filter data by dateRange
+  // Filter data by slider
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 6) Count how many non-null points remain
+  // Check if we have at least 2 non-null points
   const totalNonNullPoints = filteredData.filter((d) => d.value !== null).length;
   const hasEnoughPoints = totalNonNullPoints >= 2;
 
-  // 7) Build line segments from the data
+  // Build line segments
   const segments = createSegments(filteredData);
-
-  // Transform each segment into a separate "series" for Nivo
   const transformedData = segments
-    // If a segment has just 1 point, Nivo won't really draw a "line", but
-    // we still pass it along (or filter if you prefer).
     .filter((seg) => seg.length > 0)
     .map((segment, idx) => ({
-      // Give each segment a unique ID
       id: idx === 0 ? title : `${title} (segment ${idx + 1})`,
       color: chartColor,
       data: segment.map((d) => ({
         x: d.date,
-        y: d.value, // definitely non-null
+        y: d.value!, // definitely non-null in this segment
       })),
     }));
 
-  // 8) X-axis tick logic
+  // X-axis tick logic
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
-  const tickValues = filteredData
+  let tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // 9) Y-axis range
-  const computedYMin = yMin === "auto" ? 0 : Number(yMin);
+  // Force the rightmost date
+  const lastDate = filteredData[filteredData.length - 1]?.date;
+  if (lastDate && !tickValues.includes(lastDate)) {
+    tickValues.push(lastDate);
+  }
+
+  // Y-axis range
+  // Instead of forcing 0 for "auto", let it be "auto" so negative is allowed
+  const computedYMin = yMin === "auto" ? "auto" : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
   return (
@@ -152,7 +149,7 @@ export default function EconomicChart({
             </div>
           </div>
 
-          {/* Show Advanced Options */}
+          {/* Toggle Customize Section */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
@@ -205,7 +202,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart C ontainer */}
+      {/* Chart Container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -218,7 +215,7 @@ export default function EconomicChart({
             xScale={{ type: "point" }}
             yScale={{
               type: "linear",
-              min: computedYMin,
+              min: computedYMin, 
               max: computedYMax,
               stacked: false,
             }}
@@ -247,7 +244,10 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            areaBaselineValue={computedYMin}
+            // set areaBaselineValue to 0 only if you want
+            // the fill to always anchor at zero. If you want to let negative
+            // area go below, change to "auto" or remove entirely:
+            areaBaselineValue={computedYMin === "auto" ? 0 : computedYMin}
             colors={[chartColor]}
             enablePoints={showPoints}
             pointSize={6}
