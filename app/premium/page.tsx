@@ -17,22 +17,19 @@ interface FredRow {
 }
 
 /**
- * The updated 100+ series list in the exact order you provided.
+ * The updated series list with unwanted series removed.
  */
 const FULL_SERIES_LIST = [
   { series_id: "A191RL1A225NBEA", description: "Real Personal Consumption Expenditures" },
   { series_id: "AHETPI", description: "\"Average Hourly Earnings: Total Private, All Employees\"" },
   { series_id: "AWHMAN", description: "Average Weekly Hours of Manufacturing Employees: Total Private" },
   { series_id: "AWHNONAG", description: "Average Weekly Hours of Production and Nonsupervisory Employees: Total Private" },
-  { series_id: "BAA10Y", description: "Moody's Seasoned Baa Corporate Bond Yield to Maturity" },
-  { series_id: "BAMLC0A0CM", description: "Moody's Seasoned Aaa Corporate Bond Yield to Maturity" },
+
+  // BAA10Y => REMOVED
+  // BAMLC0A0CM => REMOVED
+  // CES0500000003 => REMOVED (and all CES lines)
+
   { series_id: "BUSINV", description: "Business Inventories" },
-  { series_id: "CES0500000003", description: "\"Average Hourly Earnings of All Employees, Total Private (CES)\"" },
-  { series_id: "CES3000000001", description: "All Employees: Total Private Sector" },
-  { series_id: "CES9091000001", description: "All Employees: Government (Seasonally Adjusted)" },
-  { series_id: "CES9091000002", description: "All Employees: Private Sector (Seasonally Adjusted)" },
-  { series_id: "CES9091200001", description: "All Employees: Goods-Producing (Seasonally Adjusted)" },
-  { series_id: "CES9091200002", description: "All Employees: Service-Producing (Seasonally Adjusted)" },
   { series_id: "CFNAI", description: "Chicago Fed National Activity Index" },
   { series_id: "CIVPART", description: "Civilian Employment–Population Ratio" },
   { series_id: "CLF16OV", description: "Civilian Labor Force" },
@@ -63,7 +60,8 @@ const FULL_SERIES_LIST = [
   { series_id: "GDPPOT", description: "Potential Gross Domestic Product" },
   { series_id: "GFDEBTN", description: "Federal Debt: Total Public Debt" },
   { series_id: "GNPCA", description: "Gross National Product, Chain-type Price Index" },
-  { series_id: "GOLDAMGBD228NLBM", description: "Gold Price: London Bullion Market, USD/oz" },
+  
+  // GOLDAMGBD228NLBM => REMOVED
   { series_id: "GPDI", description: "Gross Private Domestic Investment" },
   { series_id: "HOUST", description: "Housing Starts" },
   { series_id: "ICSA", description: "Initial Unemployment Claims" },
@@ -72,18 +70,20 @@ const FULL_SERIES_LIST = [
   { series_id: "IPFINAL", description: "Industrial Production: Final Products" },
   { series_id: "IPMAN", description: "Industrial Production: Manufacturing" },
   { series_id: "IPMANNS", description: "Industrial Production: Manufacturing (Not Seasonally Adjusted)" },
-  { series_id: "ISMNONMAN", description: "ISM Non‑Manufacturing PMI" },
+
+  // ISMNONMAN => REMOVED
   { series_id: "JTSJOL", description: "Job Openings (JOLTS)" },
-  { series_id: "JTSJOLNS", description: "Job Openings (JOLTS): Not Seasonally Adjusted" },
-  { series_id: "LEI", description: "Leading Economic Index" },
+  // JTSJOLNS => REMOVED
+  // LEI => REMOVED
+
   { series_id: "M1REAL", description: "Real M1 Money Stock" },
   { series_id: "M1SL", description: "M1 Money Stock" },
   { series_id: "M2REAL", description: "Real M2 Money Stock" },
   { series_id: "M2SL", description: "M2 Money Stock" },
   { series_id: "MORTGAGE15US", description: "15‑Year Fixed Rate Mortgage Average" },
   { series_id: "MORTGAGE30US", description: "30‑Year Fixed Rate Mortgage Average" },
-  { series_id: "NAHBWAM", description: "NAHB/Wells Fargo Housing Market Index" },
-  { series_id: "NAPM", description: "ISM Manufacturing Purchasing Managers’ Index (PMI)" },
+  // NAHBWAM => REMOVED
+  // NAPM => REMOVED
   { series_id: "NETEXP", description: "Net Exports of Goods and Services" },
   { series_id: "NFCI", description: "National Financial Conditions Index" },
   { series_id: "PAYEMS", description: "Total Nonfarm Payrolls" },
@@ -98,7 +98,7 @@ const FULL_SERIES_LIST = [
   { series_id: "RECPROUSM156N", description: "Real Estate Price Index: U.S. All-Transactions" },
   { series_id: "RSAFS", description: "Retail Sales" },
   { series_id: "SP500", description: "S&P 500 Index" },
-  { series_id: "SP500TR", description: "S&P 500 Total Return Index" },
+  // SP500TR => REMOVED
   { series_id: "STLFSI", description: "St. Louis Financial Stress Index" },
   { series_id: "T10Y2Y", description: "10‑Year Treasury Minus 2‑Year Treasury Yield Spread" },
   { series_id: "T10YIE", description: "10‑Year Breakeven Inflation Rate" },
@@ -107,7 +107,7 @@ const FULL_SERIES_LIST = [
   { series_id: "TEDRATE", description: "TED Spread" },
   { series_id: "TOTALSA", description: "Total Vehicle Sales" },
   { series_id: "TOTALSL", description: "Consumer Credit Outstanding (Total)" },
-  { series_id: "TOTBUSLOANS", description: "Total Business Loans and Leases at Commercial Banks" },
+  // TOTBUSLOANS => REMOVED
   { series_id: "TOTCI", description: "Total Construction Spending" },
   { series_id: "TWEXB", description: "Trade Weighted U.S. Dollar Index" },
   { series_id: "U6RATE", description: "U6 Unemployment Rate (a broader measure of unemployment)" },
@@ -118,15 +118,15 @@ const FULL_SERIES_LIST = [
   { series_id: "VIXCLS", description: "CBOE Volatility Index" },
   { series_id: "W875RX1", description: "Federal Surplus/Deficit as Percent of GDP" },
   { series_id: "WALCL", description: "Total Assets of the Federal Reserve (H.4.1 Data)" },
-  { series_id: "WILL5000IND", description: "Wilshire 5000 Total Market Index" },
-  { series_id: "WPSID61", description: "Real Personal Income Per Capita" },
+  // WILL5000IND => REMOVED
+  // WPSID61 => REMOVED
 ];
 
 /**
- * Renders the premium page. 
- *  - SSR for the first 10 items
- *  - the rest as metadata for lazy loading
- *  - entire list passed for "Show All Series" modal
+ * Renders the premium page.
+ * - SSR for the first 10 items
+ * - the rest as metadata for lazy loading
+ * - entire list passed for "Show All Series" modal
  */
 export default async function PremiumPage() {
   // 1) Separate the first 10 vs. the remaining
