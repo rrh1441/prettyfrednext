@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
-/** A single data point, e.g. { date: 'Jan 2020', value: 123 } */
+/** A single data point */
 interface DataPoint {
   date: string;
   value: number | null;
@@ -23,21 +23,7 @@ interface EconomicChartProps {
 }
 
 /**
- * Helper: returns a [start, end] index covering the last N points,
- * or the entire data if it's shorter than N.
- */
-function getLastNRange(dataArray: DataPoint[], N: number): [number, number] {
-  const len = dataArray.length;
-  if (len <= N) {
-    return [0, len];
-  }
-  // e.g. [7000, 10000] if len=10,000 & N=3000
-  return [len - N, len];
-}
-
-/**
  * Splits the data into "segments" whenever there's a null value.
- * That way, each segment is drawn as a separate line, producing a gap.
  */
 function createSegments(dataArray: DataPoint[]): DataPoint[][] {
   const segments: DataPoint[][] = [];
@@ -45,7 +31,6 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
 
   for (const pt of dataArray) {
     if (pt.value === null) {
-      // We hit a null -> end the current segment
       if (currentSegment.length > 0) {
         segments.push(currentSegment);
         currentSegment = [];
@@ -57,6 +42,7 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
+
   return segments;
 }
 
@@ -67,10 +53,10 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // 1) Keep all data (including null), rely on segmentation to handle null
+  // 1) All data (including null)
   const validData = data;
 
-  // 2) If chart is not editable, override with a more "beautiful" color
+  // 2) Override color if not editable
   const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
@@ -82,21 +68,17 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // 4) Default to the last 3000 points, or entire range if less than 3000
-  const defaultRange = getLastNRange(validData, 3000);
-  const [dateRange, setDateRange] = useState<[number, number]>(defaultRange);
-
-  // 5) Filter data by dateRange
+  // 4) Date range slider
+  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
+  // 5) Filtered data
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
 
-  // 6) Count how many non-null points remain
+  // 6) Enough points check
   const totalNonNullPoints = filteredData.filter((d) => d.value !== null).length;
   const hasEnoughPoints = totalNonNullPoints >= 2;
 
-  // 7) Build line segments from the data
+  // 7) Build segments
   const segments = createSegments(filteredData);
-
-  // Transform each segment into a separate "series" for Nivo
   const transformedData = segments
     .filter((seg) => seg.length > 0)
     .map((segment, idx) => ({
@@ -104,30 +86,44 @@ export default function EconomicChart({
       color: chartColor,
       data: segment.map((d) => ({
         x: d.date,
-        y: d.value ?? 0, // definitely non-null in the segment; "?? 0" is optional
+        y: d.value ?? 0,
       })),
     }));
 
-  // 8) X-axis tick logic
+  // 8) X-axis ticks
   const tickInterval = hasEnoughPoints ? Math.ceil(filteredData.length / 12) : 1;
   const tickValues = filteredData
     .map((d) => d.date)
     .filter((_, idx) => idx % tickInterval === 0);
 
-  // Force the rightmost date label if it's not already included
+  // Force final date label
   const lastDate = filteredData[filteredData.length - 1]?.date;
   if (lastDate && !tickValues.includes(lastDate)) {
     tickValues.push(lastDate);
   }
 
   // 9) Y-axis range
-  // Let "auto" handle negative data
   const computedYMin = yMin === "auto" ? "auto" : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
+  // --- Compute areaBaselineValue to be the "lowest actual data point"
+  let areaBaselineValue: number | "auto" = 0;
+  if (typeof computedYMin === "string") {
+    // means user said "auto"
+    // so let's find min among the filtered data
+    const dataValues = filteredData.map((d) => d.value).filter((v) => v != null) as number[];
+    if (dataValues.length > 0) {
+      areaBaselineValue = Math.min(...dataValues);
+    } else {
+      areaBaselineValue = 0; // fallback if no data
+    }
+  } else {
+    // user typed a numeric min => use that
+    areaBaselineValue = computedYMin;
+  }
+
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
-      {/* Title */}
       {isEditable ? (
         <Input
           type="text"
@@ -138,7 +134,6 @@ export default function EconomicChart({
       ) : (
         <h3 className="text-lg font-semibold mb-2">{title}</h3>
       )}
-
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
       {isEditable && (
@@ -219,7 +214,6 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart Container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -252,17 +246,15 @@ export default function EconomicChart({
               legendOffset: -60,
               legendPosition: "middle",
               format: (val) =>
-                Number(val).toLocaleString(undefined, {
-                  maximumFractionDigits: 1,
-                }),
+                Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
             }}
             curve="linear"
             useMesh
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // If you want negative area to appear below zero, remove or set areaBaselineValue="auto"
-            areaBaselineValue={computedYMin === "auto" ? 0 : computedYMin}
+            // Now we anchor area fill to the lowest data value (or numeric min).
+            areaBaselineValue={areaBaselineValue}
             colors={[chartColor]}
             enablePoints={showPoints}
             pointSize={6}
@@ -283,7 +275,7 @@ export default function EconomicChart({
       </div>
 
       <p className="text-xs text-gray-500 mt-2 text-right">
-        Source: PrettyFRED viz using Federal Reserve Economic Data (FRED)
+        Source: Federal Reserve Economic Data (FRED)
       </p>
     </Card>
   );
