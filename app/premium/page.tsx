@@ -17,9 +17,7 @@ interface FredRow {
 }
 
 /**
- * We define ALL your 100+ data series here, in the exact order
- * you provided. Make sure to remove any header line like
- * "Series ID,Description" from the final array.
+ * The updated 100+ series list in the exact order you provided.
  */
 const FULL_SERIES_LIST = [
   { series_id: "A191RL1A225NBEA", description: "Real Personal Consumption Expenditures" },
@@ -131,13 +129,13 @@ const FULL_SERIES_LIST = [
  *  - entire list passed for "Show All Series" modal
  */
 export default async function PremiumPage() {
-  // Separate the first 10 vs. the remaining
+  // 1) Separate the first 10 vs. the remaining
   const first10 = FULL_SERIES_LIST.slice(0, 10);
   const rest = FULL_SERIES_LIST.slice(10);
 
   const initialSeries: SeriesData[] = [];
 
-  // Fetch row data for the first 10 (SSR)
+  // 2) Fetch row data for the first 10 (SSR)
   for (const item of first10) {
     const { data: rows, error } = await supabase
       .from("fred_data")
@@ -162,6 +160,7 @@ export default async function PremiumPage() {
     });
   }
 
+  // 3) Pass SSR data to the client, plus leftover series
   return (
     <MembersClient
       initialSeries={initialSeries}

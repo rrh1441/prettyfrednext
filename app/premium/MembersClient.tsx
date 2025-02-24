@@ -68,10 +68,12 @@ export default function MembersClient({
         console.warn("Error fetching", m.series_id, error.message);
         continue;
       }
+
       const chartData = (rows as FredRow[] ?? []).map((r) => ({
         date: r.date,
         value: r.value,
       }));
+
       results.push({
         series_id: m.series_id,
         description: m.description,
@@ -152,7 +154,9 @@ export default function MembersClient({
   // ---- Pin logic
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
-      prev.includes(seriesId) ? prev.filter((id) => id !== seriesId) : [...prev, seriesId]
+      prev.includes(seriesId)
+        ? prev.filter((id) => id !== seriesId)
+        : [...prev, seriesId]
     );
   }
 
