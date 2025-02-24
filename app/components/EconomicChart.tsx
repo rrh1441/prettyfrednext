@@ -23,6 +23,19 @@ interface EconomicChartProps {
 }
 
 /**
+ * Helper: returns a [start, end] index covering the last N points,
+ * or the entire data if it's shorter than N.
+ */
+function getLastNRange(dataArray: DataPoint[], N: number): [number, number] {
+  const len = dataArray.length;
+  if (len <= N) {
+    return [0, len];
+  }
+  // e.g. [7000, 10000] if len=10,000 & N=3000
+  return [len - N, len];
+}
+
+/**
  * Splits the data into "segments" whenever there's a null value.
  * That way, each segment is drawn as a separate line, producing a gap.
  */
@@ -37,17 +50,13 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
         segments.push(currentSegment);
         currentSegment = [];
       }
-      // Skip adding the null point (which creates the gap)
     } else {
-      // Non-null -> accumulate in current segment
       currentSegment.push(pt);
     }
   }
-  // If there's leftover data in currentSegment, push it
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
-
   return segments;
 }
 
@@ -73,8 +82,9 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // 4) Date range slider [startIndex, endIndex]
-  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
+  // 4) Default to the last 3000 points, or entire range if less than 3000
+  const defaultRange = getLastNRange(validData, 3000);
+  const [dateRange, setDateRange] = useState<[number, number]>(defaultRange);
 
   // 5) Filter data by dateRange
   const filteredData = validData.slice(dateRange[0], dateRange[1]);
@@ -111,7 +121,7 @@ export default function EconomicChart({
   }
 
   // 9) Y-axis range
-  // Instead of forcing 0, let "auto" handle negative data
+  // Let "auto" handle negative data
   const computedYMin = yMin === "auto" ? "auto" : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
@@ -156,7 +166,7 @@ export default function EconomicChart({
             </div>
           </div>
 
-          {/* Show Advanced Options */}
+          {/* Toggle Customize Chart Section */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
@@ -251,7 +261,7 @@ export default function EconomicChart({
             enableSlices={false}
             enableArea
             areaOpacity={0.1}
-            // If you want negative area to appear below zero, remove or adjust areaBaselineValue:
+            // If you want negative area to appear below zero, remove or set areaBaselineValue="auto"
             areaBaselineValue={computedYMin === "auto" ? 0 : computedYMin}
             colors={[chartColor]}
             enablePoints={showPoints}
@@ -273,7 +283,7 @@ export default function EconomicChart({
       </div>
 
       <p className="text-xs text-gray-500 mt-2 text-right">
-        Source: Federal Reserve Economic Data (FRED)
+        Source: PrettyFRED viz using Federal Reserve Economic Data (FRED)
       </p>
     </Card>
   );
