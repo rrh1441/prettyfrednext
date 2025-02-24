@@ -54,22 +54,30 @@ export default function MembersClient({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // ---- Helper to fetch row data from Supabase
+  // ---- Helper to fetch row data from Supabase,
+  //      limiting to newest ~2500 rows, then reversing.
   const fetchSeriesRows = useCallback(async (metas: SeriesMeta[]): Promise<SeriesData[]> => {
     const results: SeriesData[] = [];
+
     for (const m of metas) {
+      // Query only the newest 2500 rows (daily data can be huge)
+      // order descending => newest first
       const { data: rows, error } = await supabase
         .from("fred_data")
         .select("date, value")
         .eq("series_id", m.series_id)
-        .order("date", { ascending: true });
+        .order("date", { ascending: false })
+        .limit(2500);
 
       if (error) {
         console.warn("Error fetching", m.series_id, error.message);
         continue;
       }
 
-      const chartData = (rows as FredRow[] ?? []).map((r) => ({
+      // reverse so the final array is oldest -> newest for the chart
+      const reversed = (rows as FredRow[] ?? []).reverse();
+
+      const chartData = reversed.map((r) => ({
         date: r.date,
         value: r.value,
       }));
@@ -80,6 +88,7 @@ export default function MembersClient({
         data: chartData,
       });
     }
+
     return results;
   }, []);
 
