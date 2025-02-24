@@ -31,6 +31,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
           <h3 className="text-xl font-semibold mb-2">Premium</h3>
           <ul className="list-disc pl-5 text-gray-700 space-y-1">
             <li>Completely customize your charts</li>
+            <li>Access to 80+ data series</li>
             <li>Export data in multiple formats</li>
             <li>Request any FRED data series</li>
           </ul>
