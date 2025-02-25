@@ -225,12 +225,12 @@ export default function EconomicChart({
   }
 
   // Here's the array of colors matching finalChartData order:
-  // Nivo will assign them 1:1 to each series in the same order.
   const colorArray = finalChartData.map((line) => line.color);
 
   // ---------- Render ----------
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
+      {/* Title or editable Input */}
       {isEditable ? (
         <Input
           type="text"
@@ -244,6 +244,7 @@ export default function EconomicChart({
 
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
+      {/* If editable: slider & advanced options */}
       {isEditable && (
         <>
           {/* Local Date Slider */}
@@ -364,6 +365,7 @@ export default function EconomicChart({
         </>
       )}
 
+      {/* Main chart area */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -372,7 +374,6 @@ export default function EconomicChart({
         ) : (
           <ResponsiveLine
             data={finalChartData}
-            // We supply the colors array, same order as `data` array
             colors={colorArray}
             margin={{ top: 40, right: 30, bottom: 60, left: 70 }}
             xScale={{ type: "point" }}
@@ -431,9 +432,11 @@ export default function EconomicChart({
         )}
       </div>
 
-      <p className="text-xs text-gray-500 mt-2 text-right">
-        Source: Federal Reserve Economic Data (FRED)
-      </p>
+      {/* Bottom text row: left "Visualization by PrettyFRED", right "Source: FRED" */}
+      <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+        <span>Visualization by PrettyFRED</span>
+        <span>Source: Federal Reserve Economic Data (FRED)</span>
+      </div>
     </Card>
   );
 }

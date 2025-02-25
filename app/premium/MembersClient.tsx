@@ -247,8 +247,7 @@ export default function MembersClient({
   // ---- Render
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Premium Dashboard (Infinite Scroll)</h1>
-
+      
       <div className="flex flex-wrap gap-2 mb-4">
         <Input
           placeholder="Search by series_id or description..."
