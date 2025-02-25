@@ -58,7 +58,6 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
       currentSegment.push(pt);
     }
   }
-
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
@@ -84,7 +83,7 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // local slider for the primary dataset
+  // Local date slider for the primary dataset
   const [dateRange, setDateRange] = useState<[number, number]>([0, primaryData.length]);
   const filteredPrimary = primaryData.slice(dateRange[0], dateRange[1]);
 
@@ -108,9 +107,9 @@ export default function EconomicChart({
     }
 
     try {
-      // 1) find an indicator
-      const { data: indicators, error: indErr } = await supabase
-        .from<IndicatorRow>("economic_indicators")
+      // 1) find an indicator (no generics on .from, to avoid 2-arg error)
+      const { data: rawIndicators, error: indErr } = await supabase
+        .from("economic_indicators")
         .select("series_id, description")
         .or(`series_id.ilike.%${term}%,description.ilike.%${term}%`)
         .limit(1);
@@ -119,17 +118,19 @@ export default function EconomicChart({
         setSearchError(indErr.message);
         return;
       }
-      if (!indicators || indicators.length === 0) {
+      if (!rawIndicators || rawIndicators.length === 0) {
         setSearchError("No matching series found.");
         return;
       }
 
+      // Cast to our typed array
+      const indicators = rawIndicators as IndicatorRow[];
       const found = indicators[0];
       const seriesId = found.series_id;
 
       // 2) fetch from fred_data
-      const { data: rows, error: rowsErr } = await supabase
-        .from<FredRow>("fred_data")
+      const { data: rawRows, error: rowsErr } = await supabase
+        .from("fred_data")
         .select("date, value")
         .eq("series_id", seriesId)
         .order("date", { ascending: true });
@@ -138,10 +139,13 @@ export default function EconomicChart({
         setSearchError(rowsErr.message);
         return;
       }
-      if (!rows) {
+      if (!rawRows) {
         setSearchError("No rows returned for that series.");
         return;
       }
+
+      // Cast to typed array
+      const rows = rawRows as FredRow[];
 
       const dp: DataPoint[] = rows.map((r) => ({
         date: r.date,
@@ -406,8 +410,7 @@ export default function EconomicChart({
             enableArea
             areaOpacity={0.1}
             areaBaselineValue={areaBaselineValue}
-            // We rely on each series' .color field
-            colors={({ series }) => series.color ?? "#6E59A5"}
+            colors={({ series }) => series.color ?? "#6E59A5"} // removed 'datum' param
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
