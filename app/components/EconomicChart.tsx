@@ -9,13 +9,13 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 
-/** Minimal shape from "economic_indicators" (we won't use generics in .from()) */
+/** Minimal shape for your "economic_indicators" table. */
 interface IndicatorRow {
   series_id: string;
   description: string;
 }
 
-/** Minimal shape from "fred_data" (no generics in .from()) */
+/** Minimal shape for your "fred_data" table. */
 interface FredRow {
   date: string;
   value: number | null;
@@ -27,33 +27,22 @@ interface DataPoint {
   value: number | null;
 }
 
-/** The shape for each line series we pass to Nivo. */
+/** Each line in Nivo's data array. */
 interface NivoLineSeries {
-  id: string;
-  color: string;
+  id: string;              // The name/identifier
+  color: string;           // We store the line's color
   data: { x: string; y: number }[];
 }
 
-/** 
- * The param that Nivo calls in `getColor(serie)`.
- * We'll define it minimally so we can read `serie.color`.
- */
-interface ComputedSerie {
-  id: string | number;
-  color?: string;
-  data: unknown[];
-}
-
-/** Props for the EconomicChart. */
 interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string;
+  color?: string;          // optional main color
   isEditable?: boolean;
 }
 
-/** Splits a dataset into segments for null-gap logic. */
+/** Utility to split a dataset into segments whenever `value` is null. */
 function createSegments(dataArray: DataPoint[]): DataPoint[][] {
   const segments: DataPoint[][] = [];
   let currentSegment: DataPoint[] = [];
@@ -68,7 +57,6 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
       currentSegment.push(pt);
     }
   }
-
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
@@ -83,7 +71,7 @@ export default function EconomicChart({
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // ---------- 1) Primary chart states ----------
+  // ---------- 1) Chart states for primary line ----------
   const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
@@ -94,15 +82,12 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // local date slider for the primary dataset
+  // Local slider for the primary dataset
   const [dateRange, setDateRange] = useState<[number, number]>([0, primaryData.length]);
   const filteredPrimary = primaryData.slice(dateRange[0], dateRange[1]);
 
-  // ---------- 2) Second series logic ----------
-  // Always show a toggle for second series
+  // ---------- 2) Optional second series ----------
   const [showSecondSeries, setShowSecondSeries] = useState(false);
-
-  // Searching
   const [secondSearch, setSecondSearch] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [fetchedSecondData, setFetchedSecondData] = useState<DataPoint[] | null>(null);
@@ -113,12 +98,12 @@ export default function EconomicChart({
 
     const term = secondSearch.trim();
     if (!term) {
-      setSearchError("Enter a series_id or part of description to search.");
+      setSearchError("Enter a series_id or description to search.");
       return;
     }
 
     try {
-      // 1) find an indicator
+      // 1) find an economic_indicator
       const { data: rawIndicators, error: indErr } = await supabase
         .from("economic_indicators")
         .select("series_id, description")
@@ -134,7 +119,6 @@ export default function EconomicChart({
         return;
       }
 
-      // cast to typed array
       const indicators = rawIndicators as IndicatorRow[];
       const found = indicators[0];
       const seriesId = found.series_id;
@@ -155,13 +139,12 @@ export default function EconomicChart({
         return;
       }
 
-      // cast to typed array
       const rows = rawRows as FredRow[];
-
       const dp: DataPoint[] = rows.map((r) => ({
         date: r.date,
         value: r.value,
       }));
+
       setFetchedSecondData(dp);
     } catch (err) {
       if (err instanceof Error) {
@@ -172,7 +155,6 @@ export default function EconomicChart({
     }
   }
 
-  // If toggled & we have data => slice it by the same range
   let filteredSecond: DataPoint[] = [];
   if (showSecondSeries && fetchedSecondData) {
     const secondLen = fetchedSecondData.length;
@@ -185,8 +167,8 @@ export default function EconomicChart({
   const totalNonNullSecondary = filteredSecond.filter((d) => d.value !== null).length;
   const hasEnoughPoints = totalNonNullPrimary >= 2 || totalNonNullSecondary >= 2;
 
-  // ---------- 4) Build final chart lines ----------
-  // primary
+  // ---------- 4) Build chart lines (Nivo data array) ----------
+  // A) primary
   const primarySegments = createSegments(filteredPrimary);
   const primaryTransformed: NivoLineSeries[] = primarySegments.map((segment, idx) => ({
     id: idx === 0 ? title : `${title} (segment ${idx + 1})`,
@@ -197,7 +179,7 @@ export default function EconomicChart({
     })),
   }));
 
-  // second
+  // B) second
   let secondaryTransformed: NivoLineSeries[] = [];
   if (showSecondSeries && filteredSecond.length > 0) {
     const seg2 = createSegments(filteredSecond);
@@ -211,6 +193,7 @@ export default function EconomicChart({
     }));
   }
 
+  // Final array for `ResponsiveLine`
   const finalChartData: NivoLineSeries[] = [...primaryTransformed, ...secondaryTransformed];
 
   // ---------- 5) X-axis ticks ----------
@@ -241,9 +224,13 @@ export default function EconomicChart({
     areaBaselineValue = computedYMin;
   }
 
+  // Here's the array of colors matching finalChartData order:
+  // Nivo will assign them 1:1 to each series in the same order.
+  const colorArray = finalChartData.map((line) => line.color);
+
+  // ---------- Render ----------
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
-      {/* Title */}
       {isEditable ? (
         <Input
           type="text"
@@ -385,6 +372,8 @@ export default function EconomicChart({
         ) : (
           <ResponsiveLine
             data={finalChartData}
+            // We supply the colors array, same order as `data` array
+            colors={colorArray}
             margin={{ top: 40, right: 30, bottom: 60, left: 70 }}
             xScale={{ type: "point" }}
             yScale={{
@@ -417,10 +406,6 @@ export default function EconomicChart({
             enableArea
             areaOpacity={0.1}
             areaBaselineValue={areaBaselineValue}
-            // inline the logic: use each line's color
-            getColor={(serie) =>
-              (serie as ComputedSerie).color ?? "#6E59A5"
-            }
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
