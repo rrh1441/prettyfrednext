@@ -9,13 +9,13 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 
-/** Row shape from "economic_indicators" table. */
+/** Minimal shape from "economic_indicators" (we won't use generics in .from()) */
 interface IndicatorRow {
   series_id: string;
   description: string;
 }
 
-/** Row shape from "fred_data" table. */
+/** Minimal shape from "fred_data" (no generics in .from()) */
 interface FredRow {
   date: string;
   value: number | null;
@@ -27,18 +27,29 @@ interface DataPoint {
   value: number | null;
 }
 
-/** The shape for each line series used by Nivo. */
+/** The shape for each line series we pass to Nivo. */
 interface NivoLineSeries {
   id: string;
   color: string;
-  data: Array<{ x: string; y: number }>;
+  data: { x: string; y: number }[];
+}
+
+/** 
+ * The param Nivo calls `getColor(serie)`, 
+ * but the shape is an internal "ComputedSerie" 
+ * that we partially define to hold `color?: string` 
+ */
+interface ComputedSerie {
+  id: string | number;
+  color?: string;
+  data: unknown[]; // we won't deeply type their internal
 }
 
 /** Props for the EconomicChart. */
 interface EconomicChartProps {
   title: string;
   subtitle: string;
-  data: DataPoint[]; // primary dataset
+  data: DataPoint[];
   color?: string;
   isEditable?: boolean;
 }
@@ -58,6 +69,7 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
       currentSegment.push(pt);
     }
   }
+
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
@@ -83,7 +95,7 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Local date slider for the primary dataset
+  // local date slider for the primary dataset
   const [dateRange, setDateRange] = useState<[number, number]>([0, primaryData.length]);
   const filteredPrimary = primaryData.slice(dateRange[0], dateRange[1]);
 
@@ -107,7 +119,7 @@ export default function EconomicChart({
     }
 
     try {
-      // 1) find an indicator (no generics on .from, to avoid 2-arg error)
+      // 1) find an indicator
       const { data: rawIndicators, error: indErr } = await supabase
         .from("economic_indicators")
         .select("series_id, description")
@@ -123,7 +135,7 @@ export default function EconomicChart({
         return;
       }
 
-      // Cast to our typed array
+      // cast to typed array
       const indicators = rawIndicators as IndicatorRow[];
       const found = indicators[0];
       const seriesId = found.series_id;
@@ -144,7 +156,7 @@ export default function EconomicChart({
         return;
       }
 
-      // Cast to typed array
+      // cast to typed array
       const rows = rawRows as FredRow[];
 
       const dp: DataPoint[] = rows.map((r) => ({
@@ -228,6 +240,13 @@ export default function EconomicChart({
     }
   } else {
     areaBaselineValue = computedYMin;
+  }
+
+  // A minimal typed param for the getColor function
+  // so we avoid 'any' or referencing an unknown shape.
+  // 'color?: string' is enough to read .color safely.
+  function getLineColor(serie: ComputedSerie): string {
+    return serie.color ?? "#6E59A5";
   }
 
   // ---------- Render ----------
@@ -351,7 +370,6 @@ export default function EconomicChart({
                       Search
                     </button>
                   </div>
-
                   {searchError && (
                     <p className="text-red-500 text-sm">{searchError}</p>
                   )}
@@ -410,7 +428,11 @@ export default function EconomicChart({
             enableArea
             areaOpacity={0.1}
             areaBaselineValue={areaBaselineValue}
-            colors={({ series }) => series.color ?? "#6E59A5"} // removed 'datum' param
+            /** Use getColor to read each line's color property. */
+            getColor={(serie) => {
+              const typed = serie as ComputedSerie;
+              return typed.color ?? "#6E59A5";
+            }}
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
@@ -418,18 +440,11 @@ export default function EconomicChart({
             theme={{
               background: "#fff",
               axis: {
-                ticks: {
-                  text: { fill: "#666" },
-                },
-                legend: {
-                  text: { fill: "#666" },
-                },
+                ticks: { text: { fill: "#666" } },
+                legend: { text: { fill: "#666" } },
               },
               grid: {
-                line: {
-                  stroke: "#fff",
-                  strokeWidth: 0,
-                },
+                line: { stroke: "#fff", strokeWidth: 0 },
               },
             }}
           />
