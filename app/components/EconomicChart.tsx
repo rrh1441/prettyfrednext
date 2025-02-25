@@ -35,14 +35,13 @@ interface NivoLineSeries {
 }
 
 /** 
- * The param Nivo calls `getColor(serie)`, 
- * but the shape is an internal "ComputedSerie" 
- * that we partially define to hold `color?: string` 
+ * The param that Nivo calls in `getColor(serie)`.
+ * We'll define it minimally so we can read `serie.color`.
  */
 interface ComputedSerie {
   id: string | number;
   color?: string;
-  data: unknown[]; // we won't deeply type their internal
+  data: unknown[];
 }
 
 /** Props for the EconomicChart. */
@@ -242,16 +241,9 @@ export default function EconomicChart({
     areaBaselineValue = computedYMin;
   }
 
-  // A minimal typed param for the getColor function
-  // so we avoid 'any' or referencing an unknown shape.
-  // 'color?: string' is enough to read .color safely.
-  function getLineColor(serie: ComputedSerie): string {
-    return serie.color ?? "#6E59A5";
-  }
-
-  // ---------- Render ----------
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
+      {/* Title */}
       {isEditable ? (
         <Input
           type="text"
@@ -290,7 +282,7 @@ export default function EconomicChart({
             </div>
           </div>
 
-          {/* Advanced Options Toggle */}
+          {/* Toggle advanced */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
@@ -385,7 +377,6 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -418,9 +409,7 @@ export default function EconomicChart({
               legendOffset: -60,
               legendPosition: "middle",
               format: (val) =>
-                Number(val).toLocaleString(undefined, {
-                  maximumFractionDigits: 1,
-                }),
+                Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
             }}
             curve="linear"
             useMesh
@@ -428,11 +417,10 @@ export default function EconomicChart({
             enableArea
             areaOpacity={0.1}
             areaBaselineValue={areaBaselineValue}
-            /** Use getColor to read each line's color property. */
-            getColor={(serie) => {
-              const typed = serie as ComputedSerie;
-              return typed.color ?? "#6E59A5";
-            }}
+            // inline the logic: use each line's color
+            getColor={(serie) =>
+              (serie as ComputedSerie).color ?? "#6E59A5"
+            }
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
@@ -440,11 +428,18 @@ export default function EconomicChart({
             theme={{
               background: "#fff",
               axis: {
-                ticks: { text: { fill: "#666" } },
-                legend: { text: { fill: "#666" } },
+                ticks: {
+                  text: { fill: "#666" },
+                },
+                legend: {
+                  text: { fill: "#666" },
+                },
               },
               grid: {
-                line: { stroke: "#fff", strokeWidth: 0 },
+                line: {
+                  stroke: "#fff",
+                  strokeWidth: 0,
+                },
               },
             }}
           />
