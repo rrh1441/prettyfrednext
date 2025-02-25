@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { LogIn, UserPlus } from "lucide-react";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
@@ -34,11 +35,11 @@ export default function HomePage() {
   const gdpc1 = transformIndicatorData(gdpc1Query.data);
 
   // Other series queries:
-  const gdpQuery = useIndicatorData("GDP"); // Nominal GDP
+  const gdpQuery = useIndicatorData("GDP"); 
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
-  const dgs10Query = useIndicatorData("DGS10"); // 10-Year Treasury Rate
+  const dgs10Query = useIndicatorData("DGS10");
   const payemsQuery = useIndicatorData("PAYEMS");
   const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
@@ -59,7 +60,17 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">PrettyFRED</h1>
+          {/* Replace the <h1> with a centered logo */}
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/prettyfred-logo.png"
+              alt="PrettyFRED Logo"
+              width={300}   // adjust width
+              height={150}  // adjust height or ratio
+              priority      // optionally helps load faster
+            />
+          </div>
+
           <p className="text-xl text-gray-600 mb-8">
             Beautiful Economic Data Visualization
           </p>
