@@ -71,9 +71,6 @@ export default function HomePage() {
             />
           </div>
 
-          <p className="text-xl text-gray-600 mb-8">
-            Beautiful Economic Data Visualization
-          </p>
           <div className="flex justify-center gap-4">
             <Button variant="outline" className="bg-white hover:bg-gray-100">
               <LogIn className="mr-2 h-4 w-4" />

@@ -12,7 +12,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
   return (
     <Card className={cn("p-6 w-full max-w-xl mx-auto")}>
       <h2 className="text-3xl font-bold mb-6 text-center">
-        Get Beautiful Visualizations of FRED Data
+        Beautiful Visualizations of FRED Data
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Basic Section */}
@@ -37,6 +37,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
           </ul>
         </div>
       </div>
+
       {/* CTA Button */}
       <button
         onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Premium clicked")}
@@ -44,6 +45,16 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
       >
         Unlock Premium
       </button>
+
+      {/* Coming Soon to Premium */}
+      <div className="mt-6 border-t border-gray-200 pt-4">
+        <h4 className="text-lg font-semibold mb-2">Coming Soon to Premium</h4>
+        <ul className="list-disc pl-5 text-gray-700 space-y-1">
+          <li>Regression Analysis</li>
+          <li>Custom Transformations</li>
+          <li>Comparisons across multiple series</li>
+        </ul>
+      </div>
     </Card>
   );
 }
