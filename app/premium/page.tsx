@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import MembersClient from "./MembersClient";
 
@@ -24,11 +25,6 @@ const FULL_SERIES_LIST = [
   { series_id: "AHETPI", description: "\"Average Hourly Earnings: Total Private, All Employees\"" },
   { series_id: "AWHMAN", description: "Average Weekly Hours of Manufacturing Employees: Total Private" },
   { series_id: "AWHNONAG", description: "Average Weekly Hours of Production and Nonsupervisory Employees: Total Private" },
-
-  // BAA10Y => REMOVED
-  // BAMLC0A0CM => REMOVED
-  // CES0500000003 => REMOVED (and all CES lines)
-
   { series_id: "BUSINV", description: "Business Inventories" },
   { series_id: "CFNAI", description: "Chicago Fed National Activity Index" },
   { series_id: "CIVPART", description: "Civilian Employment–Population Ratio" },
@@ -60,8 +56,6 @@ const FULL_SERIES_LIST = [
   { series_id: "GDPPOT", description: "Potential Gross Domestic Product" },
   { series_id: "GFDEBTN", description: "Federal Debt: Total Public Debt" },
   { series_id: "GNPCA", description: "Gross National Product, Chain-type Price Index" },
-  
-  // GOLDAMGBD228NLBM => REMOVED
   { series_id: "GPDI", description: "Gross Private Domestic Investment" },
   { series_id: "HOUST", description: "Housing Starts" },
   { series_id: "ICSA", description: "Initial Unemployment Claims" },
@@ -70,20 +64,13 @@ const FULL_SERIES_LIST = [
   { series_id: "IPFINAL", description: "Industrial Production: Final Products" },
   { series_id: "IPMAN", description: "Industrial Production: Manufacturing" },
   { series_id: "IPMANNS", description: "Industrial Production: Manufacturing (Not Seasonally Adjusted)" },
-
-  // ISMNONMAN => REMOVED
   { series_id: "JTSJOL", description: "Job Openings (JOLTS)" },
-  // JTSJOLNS => REMOVED
-  // LEI => REMOVED
-
   { series_id: "M1REAL", description: "Real M1 Money Stock" },
   { series_id: "M1SL", description: "M1 Money Stock" },
   { series_id: "M2REAL", description: "Real M2 Money Stock" },
   { series_id: "M2SL", description: "M2 Money Stock" },
   { series_id: "MORTGAGE15US", description: "15‑Year Fixed Rate Mortgage Average" },
   { series_id: "MORTGAGE30US", description: "30‑Year Fixed Rate Mortgage Average" },
-  // NAHBWAM => REMOVED
-  // NAPM => REMOVED
   { series_id: "NETEXP", description: "Net Exports of Goods and Services" },
   { series_id: "NFCI", description: "National Financial Conditions Index" },
   { series_id: "PAYEMS", description: "Total Nonfarm Payrolls" },
@@ -98,7 +85,6 @@ const FULL_SERIES_LIST = [
   { series_id: "RECPROUSM156N", description: "Real Estate Price Index: U.S. All-Transactions" },
   { series_id: "RSAFS", description: "Retail Sales" },
   { series_id: "SP500", description: "S&P 500 Index" },
-  // SP500TR => REMOVED
   { series_id: "STLFSI", description: "St. Louis Financial Stress Index" },
   { series_id: "T10Y2Y", description: "10‑Year Treasury Minus 2‑Year Treasury Yield Spread" },
   { series_id: "T10YIE", description: "10‑Year Breakeven Inflation Rate" },
@@ -107,7 +93,6 @@ const FULL_SERIES_LIST = [
   { series_id: "TEDRATE", description: "TED Spread" },
   { series_id: "TOTALSA", description: "Total Vehicle Sales" },
   { series_id: "TOTALSL", description: "Consumer Credit Outstanding (Total)" },
-  // TOTBUSLOANS => REMOVED
   { series_id: "TOTCI", description: "Total Construction Spending" },
   { series_id: "TWEXB", description: "Trade Weighted U.S. Dollar Index" },
   { series_id: "U6RATE", description: "U6 Unemployment Rate (a broader measure of unemployment)" },
@@ -118,8 +103,6 @@ const FULL_SERIES_LIST = [
   { series_id: "VIXCLS", description: "CBOE Volatility Index" },
   { series_id: "W875RX1", description: "Federal Surplus/Deficit as Percent of GDP" },
   { series_id: "WALCL", description: "Total Assets of the Federal Reserve (H.4.1 Data)" },
-  // WILL5000IND => REMOVED
-  // WPSID61 => REMOVED
 ];
 
 /**
@@ -160,12 +143,29 @@ export default async function PremiumPage() {
     });
   }
 
-  // 3) Pass SSR data to the client, plus leftover series
+  // 3) Render the page with a top logo + MembersClient below
   return (
-    <MembersClient
-      initialSeries={initialSeries}
-      remainingSeriesMetadata={rest}
-      allSeriesList={FULL_SERIES_LIST}
-    />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Centered Logo Header */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/prettyfred-logo.png"
+              alt="PrettyFRED Logo"
+              width={600}
+              height={300}
+              priority
+            />
+          </div>
+        </div>
+
+        <MembersClient
+          initialSeries={initialSeries}
+          remainingSeriesMetadata={rest}
+          allSeriesList={FULL_SERIES_LIST}
+        />
+      </div>
+    </div>
   );
 }
