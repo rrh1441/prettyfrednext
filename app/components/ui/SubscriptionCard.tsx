@@ -22,8 +22,8 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
           </h3>
           <ul className="list-disc pl-5 text-gray-700 space-y-1">
             <li>Access to key economic indicators</li>
-            <li>Basic visualization options</li>
-            <li>Monthly data updates</li>
+            <li>Demo customization with GDP chart</li>
+            <li>Realtime data updates</li>
           </ul>
         </div>
         {/* Premium Section */}
@@ -31,7 +31,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
           <h3 className="text-xl font-semibold mb-2">Premium</h3>
           <ul className="list-disc pl-5 text-gray-700 space-y-1">
             <li>Completely customize your charts</li>
-            <li>Access to 80+ data series</li>
+            <li>Access to 80+ data series with realtime updates</li>
             <li>Export data in multiple formats</li>
             <li>Request any FRED data series</li>
           </ul>
