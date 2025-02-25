@@ -9,24 +9,41 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabaseClient";
 
-/** A single data point */
+/** Row shape from "economic_indicators" table. */
+interface IndicatorRow {
+  series_id: string;
+  description: string;
+}
+
+/** Row shape from "fred_data" table. */
+interface FredRow {
+  date: string;
+  value: number | null;
+}
+
+/** A single data point for the chart. */
 interface DataPoint {
   date: string;
   value: number | null;
 }
 
+/** The shape for each line series used by Nivo. */
+interface NivoLineSeries {
+  id: string;
+  color: string;
+  data: Array<{ x: string; y: number }>;
+}
+
+/** Props for the EconomicChart. */
 interface EconomicChartProps {
   title: string;
   subtitle: string;
-  /** Primary dataset. */
-  data: DataPoint[];
+  data: DataPoint[]; // primary dataset
   color?: string;
   isEditable?: boolean;
 }
 
-/**
- * Splits a dataset into "segments" for null-gap logic.
- */
+/** Splits a dataset into segments for null-gap logic. */
 function createSegments(dataArray: DataPoint[]): DataPoint[][] {
   const segments: DataPoint[][] = [];
   let currentSegment: DataPoint[] = [];
@@ -41,27 +58,25 @@ function createSegments(dataArray: DataPoint[]): DataPoint[][] {
       currentSegment.push(pt);
     }
   }
+
   if (currentSegment.length > 0) {
     segments.push(currentSegment);
   }
+
   return segments;
 }
 
 export default function EconomicChart({
   title: initialTitle,
   subtitle,
-  data,
+  data: primaryData,
   color = "#6E59A5",
   isEditable = false,
 }: EconomicChartProps) {
-  // -- Primary data
-  const validData = data;
-
-  // If chart is not editable, override color
+  // ---------- 1) Primary chart states ----------
   const defaultNonEditableColor = "#7E69AB";
   const chartColorDefault = isEditable ? color : defaultNonEditableColor;
 
-  // --- States for advanced options
   const [title, setTitle] = useState(initialTitle);
   const [chartColor, setChartColor] = useState(chartColorDefault);
   const [yMin, setYMin] = useState<string>("auto");
@@ -69,20 +84,18 @@ export default function EconomicChart({
   const [showPoints, setShowPoints] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Local slider range
-  const [dateRange, setDateRange] = useState<[number, number]>([0, validData.length]);
-  const filteredPrimary = validData.slice(dateRange[0], dateRange[1]);
+  // local slider for the primary dataset
+  const [dateRange, setDateRange] = useState<[number, number]>([0, primaryData.length]);
+  const filteredPrimary = primaryData.slice(dateRange[0], dateRange[1]);
 
-  // We'll let the user always see a "Add Second Series" toggle
-  // plus a search field to find that second series.
-
-  // 1) If user toggles it on => we show search input and, if a dataset is loaded, we draw it
+  // ---------- 2) Second series logic ----------
+  // Always show a toggle for second series
   const [showSecondSeries, setShowSecondSeries] = useState(false);
 
-  // 2) Searching states
+  // Searching
   const [secondSearch, setSecondSearch] = useState("");
-  const [fetchedSecondData, setFetchedSecondData] = useState<DataPoint[] | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [fetchedSecondData, setFetchedSecondData] = useState<DataPoint[] | null>(null);
 
   async function handleSearchSecond() {
     setSearchError(null);
@@ -95,12 +108,9 @@ export default function EconomicChart({
     }
 
     try {
-      // We'll do a quick supabase query:
-      // 1) Find an economic_indicator with series_id or description ILIKE
-      // 2) Then fetch from fred_data all rows for the first match
-      // This is a simplistic approach; adjust as needed for your real logic.
+      // 1) find an indicator
       const { data: indicators, error: indErr } = await supabase
-        .from("economic_indicators")
+        .from<IndicatorRow>("economic_indicators")
         .select("series_id, description")
         .or(`series_id.ilike.%${term}%,description.ilike.%${term}%`)
         .limit(1);
@@ -117,9 +127,9 @@ export default function EconomicChart({
       const found = indicators[0];
       const seriesId = found.series_id;
 
-      // Now fetch from fred_data
+      // 2) fetch from fred_data
       const { data: rows, error: rowsErr } = await supabase
-        .from("fred_data")
+        .from<FredRow>("fred_data")
         .select("date, value")
         .eq("series_id", seriesId)
         .order("date", { ascending: true });
@@ -129,60 +139,68 @@ export default function EconomicChart({
         return;
       }
       if (!rows) {
-        setSearchError("No rows returned.");
+        setSearchError("No rows returned for that series.");
         return;
       }
 
-      // Convert rows to DataPoint
       const dp: DataPoint[] = rows.map((r) => ({
         date: r.date,
         value: r.value,
       }));
       setFetchedSecondData(dp);
-    } catch (err: any) {
-      setSearchError(err.message || "Unexpected error searching second series.");
+    } catch (err) {
+      if (err instanceof Error) {
+        setSearchError(err.message);
+      } else {
+        setSearchError("Unexpected error searching second series.");
+      }
     }
   }
 
-  // 3) If user has toggled second series + we have a fetched dataset => slice it
+  // If toggled & we have data => slice it by the same range
   let filteredSecond: DataPoint[] = [];
   if (showSecondSeries && fetchedSecondData) {
     const secondLen = fetchedSecondData.length;
-    // If the slider's max is bigger than the second dataset's length, we clamp
     const maxIndex = Math.min(dateRange[1], secondLen);
     filteredSecond = fetchedSecondData.slice(dateRange[0], maxIndex);
   }
 
-  // Check if either dataset has enough points
+  // ---------- 3) Enough points check ----------
   const totalNonNullPrimary = filteredPrimary.filter((d) => d.value !== null).length;
   const totalNonNullSecondary = filteredSecond.filter((d) => d.value !== null).length;
   const hasEnoughPoints = totalNonNullPrimary >= 2 || totalNonNullSecondary >= 2;
 
-  // Build chart lines
-  // A) Primary lines
+  // ---------- 4) Build final chart lines ----------
+  // primary
   const primarySegments = createSegments(filteredPrimary);
-  const primaryTransformed = primarySegments.map((segment, idx) => ({
-    id: idx === 0 ? title : `${title} (seg ${idx + 1})`,
+  const primaryTransformed: NivoLineSeries[] = primarySegments.map((segment, idx) => ({
+    id: idx === 0 ? title : `${title} (segment ${idx + 1})`,
     color: chartColor,
-    data: segment.map((d) => ({ x: d.date, y: d.value ?? 0 })),
+    data: segment.map((d) => ({
+      x: d.date,
+      y: d.value ?? 0,
+    })),
   }));
 
-  // B) Second lines if toggled
-  let secondaryTransformed: any[] = [];
+  // second
+  let secondaryTransformed: NivoLineSeries[] = [];
   if (showSecondSeries && filteredSecond.length > 0) {
     const seg2 = createSegments(filteredSecond);
     secondaryTransformed = seg2.map((segment, idx) => ({
       id: idx === 0 ? "Second Series" : `Second Series (seg ${idx + 1})`,
       color: "#EA5F5F",
-      data: segment.map((d) => ({ x: d.date, y: d.value ?? 0 })),
+      data: segment.map((d) => ({
+        x: d.date,
+        y: d.value ?? 0,
+      })),
     }));
   }
 
-  // Merge them
-  const finalChartData = [...primaryTransformed, ...secondaryTransformed];
+  const finalChartData: NivoLineSeries[] = [...primaryTransformed, ...secondaryTransformed];
 
-  // X-axis ticks => we pick whichever filtered array is bigger
-  const biggerFiltered = filteredPrimary.length >= filteredSecond.length ? filteredPrimary : filteredSecond;
+  // ---------- 5) X-axis ticks ----------
+  const biggerFiltered =
+    filteredPrimary.length >= filteredSecond.length ? filteredPrimary : filteredSecond;
   const tickInterval = hasEnoughPoints ? Math.ceil(biggerFiltered.length / 12) : 1;
   const tickValues = biggerFiltered
     .map((d) => d.date)
@@ -192,11 +210,10 @@ export default function EconomicChart({
     tickValues.push(lastDate);
   }
 
-  // Y range
+  // ---------- 6) Y-axis range ----------
   const computedYMin = yMin === "auto" ? "auto" : Number(yMin);
   const computedYMax = yMax === "auto" ? "auto" : Number(yMax);
 
-  // areaBaseline => combined min from both sets
   let areaBaselineValue: number | "auto" = 0;
   if (computedYMin === "auto") {
     const combinedValues = [...filteredPrimary, ...filteredSecond]
@@ -209,6 +226,7 @@ export default function EconomicChart({
     areaBaselineValue = computedYMin;
   }
 
+  // ---------- Render ----------
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
       {isEditable ? (
@@ -224,19 +242,16 @@ export default function EconomicChart({
 
       <p className="text-sm text-gray-600 mb-4">{subtitle}</p>
 
-      {/* If not editable, skip the rest */}
       {isEditable && (
         <>
-          {/* Local slider */}
+          {/* Local Date Slider */}
           <div className="mb-4">
             <label className="block text-sm mb-1">Date Range</label>
             <Slider.Root
               value={dateRange}
               onValueChange={(val) => setDateRange([val[0], val[1]] as [number, number])}
               min={0}
-              // the max is whichever dataset might be largest. 
-              // If second data is unknown or smaller, we do a safe approach:
-              max={Math.max(validData.length, fetchedSecondData?.length ?? 0)}
+              max={Math.max(primaryData.length, fetchedSecondData?.length ?? 0)}
               step={1}
               className="relative flex w-full touch-none items-center"
             >
@@ -252,7 +267,7 @@ export default function EconomicChart({
             </div>
           </div>
 
-          {/* Toggle advanced */}
+          {/* Advanced Options Toggle */}
           <button
             type="button"
             onClick={() => setShowAdvanced((prev) => !prev)}
@@ -263,7 +278,7 @@ export default function EconomicChart({
 
           {showAdvanced && (
             <div className="space-y-4 mb-4 border border-gray-100 p-3 rounded">
-              {/* Color picker for primary */}
+              {/* Primary Color */}
               <div className="flex items-center gap-2">
                 <label className="text-sm w-20">Primary Color:</label>
                 <input
@@ -293,7 +308,7 @@ export default function EconomicChart({
                 />
               </div>
 
-              {/* Toggle Show Points */}
+              {/* Show Points */}
               <div className="flex items-center gap-2">
                 <Switch checked={showPoints} onCheckedChange={setShowPoints} id="showPoints" />
                 <label htmlFor="showPoints" className="text-sm">
@@ -301,14 +316,14 @@ export default function EconomicChart({
                 </label>
               </div>
 
-              {/* Always show the second series toggle */}
+              {/* Toggle Second Series */}
               <div className="flex items-center gap-2">
                 <Switch
                   checked={showSecondSeries}
                   onCheckedChange={setShowSecondSeries}
-                  id="secondSeries"
+                  id="showSecondSeries"
                 />
-                <label htmlFor="secondSeries" className="text-sm">
+                <label htmlFor="showSecondSeries" className="text-sm">
                   Add second series
                 </label>
               </div>
@@ -333,8 +348,9 @@ export default function EconomicChart({
                     </button>
                   </div>
 
-                  {searchError && <p className="text-red-500 text-sm">{searchError}</p>}
-
+                  {searchError && (
+                    <p className="text-red-500 text-sm">{searchError}</p>
+                  )}
                   {fetchedSecondData !== null && (
                     <p className="text-xs text-green-700">
                       Second dataset loaded! Rows: {fetchedSecondData.length}
@@ -347,7 +363,7 @@ export default function EconomicChart({
         </>
       )}
 
-      {/* Chart area */}
+      {/* Chart container */}
       <div className="h-[350px] w-full bg-white">
         {!hasEnoughPoints ? (
           <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -390,8 +406,8 @@ export default function EconomicChart({
             enableArea
             areaOpacity={0.1}
             areaBaselineValue={areaBaselineValue}
-            // We'll see both lines if second dataset is toggled & fetched
-            colors={({ datum, series }) => series.color ?? "#6E59A5"}
+            // We rely on each series' .color field
+            colors={({ series }) => series.color ?? "#6E59A5"}
             enablePoints={showPoints}
             pointSize={6}
             pointBorderWidth={2}
@@ -399,11 +415,18 @@ export default function EconomicChart({
             theme={{
               background: "#fff",
               axis: {
-                ticks: { text: { fill: "#666" } },
-                legend: { text: { fill: "#666" } },
+                ticks: {
+                  text: { fill: "#666" },
+                },
+                legend: {
+                  text: { fill: "#666" },
+                },
               },
               grid: {
-                line: { stroke: "#fff", strokeWidth: 0 },
+                line: {
+                  stroke: "#fff",
+                  strokeWidth: 0,
+                },
               },
             }}
           />
