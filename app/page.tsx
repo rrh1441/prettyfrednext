@@ -65,8 +65,8 @@ export default function HomePage() {
             <Image
               src="/prettyfred-logo.png"
               alt="PrettyFRED Logo"
-              width={300}   // adjust width
-              height={150}  // adjust height or ratio
+              width={600}   // adjust width
+              height={300}  // adjust height or ratio
               priority      // optionally helps load faster
             />
           </div>
