@@ -2,13 +2,16 @@
 
 import Image from "next/image";
 import { LogIn, UserPlus } from "lucide-react";
+import { useRef } from "react";
+import html2canvas from "html2canvas";
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
 
 /** 
- * Removes the "?? 0" fallback so `null` stays `null`, allowing gaps in the chart.
+ * Removes "?? 0" fallback so `null` stays `null`, 
+ * preserving gaps in the chart.
  */
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
@@ -22,20 +25,18 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
       year: "numeric",
       month: "short",
     });
-    // Keep r.value as-is to preserve null (for gaps in the chart).
-    return { date: label, value: r.value };
+    return { date: label, value: r.value }; 
   });
 
   return { data, description };
 }
 
 export default function HomePage() {
-  // Top chart: GDPC1 (Real GDP, Chained 2012 Dollars)
-  const gdpc1Query = useIndicatorData("GDPC1");
-  const gdpc1 = transformIndicatorData(gdpc1Query.data);
+  // 1) Now we fetch "GDP" (Nominal GDP) instead of "GDPC1".
+  const gdpQuery = useIndicatorData("GDP");
+  const gdp = transformIndicatorData(gdpQuery.data);
 
-  // Other series queries:
-  const gdpQuery = useIndicatorData("GDP"); 
+  // 2) The other series are unchanged
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
@@ -44,9 +45,8 @@ export default function HomePage() {
   const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
 
-  // 8 non-editable series
+  // 3) Sub-series remain the same
   const subSeries = [
-    { id: "GDP", query: gdpQuery },
     { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
     { id: "PAYEMS", query: payemsQuery },
@@ -54,23 +54,65 @@ export default function HomePage() {
     { id: "DGS10", query: dgs10Query },
     { id: "SP500", query: sp500Query },
     { id: "M2SL", query: m2slQuery },
+    { id: "GDP", query: useIndicatorData("GDP") }, 
+    // e.g. if you still want "GDP" in subSeries as well (optional)
   ];
+
+  // 4) We'll store a ref for exporting the single editable chart
+  const chartRef = useRef<HTMLDivElement | null>(null);
+
+  // 4A) Helper: Export PNG
+  async function handleExportPNG() {
+    if (!chartRef.current) return;
+    const canvas = await html2canvas(chartRef.current);
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "chart.png";
+    link.click();
+  }
+
+  // 4B) Helper: Export JPG
+  async function handleExportJPG() {
+    if (!chartRef.current) return;
+    const canvas = await html2canvas(chartRef.current);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = "chart.jpg";
+    link.click();
+  }
+
+  // 4C) Helper: Export CSV
+  function handleExportCSV() {
+    if (!gdp.data || gdp.data.length === 0) return; 
+    let csv = "date,value\n";
+    gdp.data.forEach((pt) => {
+      csv += `${pt.date},${pt.value ?? ""}\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "chart.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
+        {/* Logo / Sign in / Sign up */}
         <div className="text-center mb-8">
-          {/* Replace the <h1> with a centered logo */}
           <div className="flex justify-center mb-4">
             <Image
               src="/prettyfred-logo.png"
               alt="PrettyFRED Logo"
-              width={600}   // adjust width
-              height={300}  // adjust height or ratio
-              priority      // optionally helps load faster
+              width={600}
+              height={300}
+              priority
             />
           </div>
-
           <div className="flex justify-center gap-4">
             <Button variant="outline" className="bg-white hover:bg-gray-100">
               <LogIn className="mr-2 h-4 w-4" />
@@ -83,29 +125,47 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Grid with subscription card on the left and top chart (GDPC1) on the right */}
+        {/* Subscription card on left, top chart (Nominal GDP) on right */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <SubscriptionCard onSubscribe={() => console.log("Subscribe CTA clicked")} />
-          {gdpc1Query.isLoading ? (
+          {gdpQuery.isLoading ? (
             <div className="flex items-center justify-center h-80">
-              Loading GDPC1...
+              Loading GDP...
             </div>
-          ) : gdpc1Query.error ? (
+          ) : gdpQuery.error ? (
             <div className="text-red-500">
-              Error: {(gdpc1Query.error as Error).message}
+              Error: {(gdpQuery.error as Error).message}
             </div>
           ) : (
-            <EconomicChart
-              title={gdpc1.description}
-              subtitle="(Real Gross Domestic Product (Chained 2012 Dollars))"
-              data={gdpc1.data}
-              color="#6E59A5"
-              isEditable
-            />
+            <div className="flex flex-col">
+              {/* Put the chart in a ref container */}
+              <div ref={chartRef}>
+                <EconomicChart
+                  title={gdp.description}     // "Nominal GDP" typically
+                  // Omit the old "subtitle" or keep a shorter label
+                  subtitle=""
+                  data={gdp.data}
+                  color="#6E59A5"
+                  isEditable
+                />
+              </div>
+              {/* Export buttons appear if it's editable */}
+              <div className="mt-2 flex gap-2">
+                <Button variant="outline" onClick={handleExportPNG}>
+                  Export PNG
+                </Button>
+                <Button variant="outline" onClick={handleExportJPG}>
+                  Export JPG
+                </Button>
+                <Button variant="outline" onClick={handleExportCSV}>
+                  Export CSV
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* 8 non-editable series below */}
+        {/* 7 non-editable series below (plus optional "GDP" if you want it repeated) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {subSeries.map(({ id, query }) => {
             const { data: rows, isLoading, error } = query;
@@ -128,9 +188,6 @@ export default function HomePage() {
 
             let sub = "";
             switch (id) {
-              case "GDP":
-                sub = "(Gross Domestic Product (Nominal))";
-                break;
               case "UNRATE":
                 sub = "(Civilian Unemployment Rate)";
                 break;
@@ -151,6 +208,9 @@ export default function HomePage() {
                 break;
               case "M2SL":
                 sub = "(M2 Money Stock)";
+                break;
+              case "GDP":
+                sub = "(Gross Domestic Product (Nominal))";
                 break;
               default:
                 sub = "";
