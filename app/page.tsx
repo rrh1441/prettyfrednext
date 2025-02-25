@@ -109,7 +109,7 @@ export default function HomePage() {
               src="/prettyfred-logo.png"
               alt="PrettyFRED Logo"
               width={600}
-              height={300}
+              height={200}
               priority
             />
           </div>
