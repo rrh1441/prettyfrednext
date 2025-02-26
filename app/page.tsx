@@ -1,9 +1,11 @@
 "use client";
 
-import Image from "next/image";
-import { LogIn, UserPlus } from "lucide-react";
 import { useRef } from "react";
+import Image from "next/image";
+import Link from "next/link";            // for navigation
 import html2canvas from "html2canvas";
+import { LogIn, UserPlus } from "lucide-react";
+
 import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
@@ -47,15 +49,15 @@ export default function HomePage() {
 
   // 3) Sub-series remain the same
   const subSeries = [
-    { id: "UNRATE", query: unrateQuery },
+    { id: "UNRATE",  query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
-    { id: "PAYEMS", query: payemsQuery },
+    { id: "PAYEMS",   query: payemsQuery },
     { id: "FEDFUNDS", query: fedFundsQuery },
-    { id: "DGS10", query: dgs10Query },
-    { id: "SP500", query: sp500Query },
-    { id: "M2SL", query: m2slQuery },
-    { id: "GDP", query: useIndicatorData("GDP") }, 
-    // e.g. if you still want "GDP" in subSeries as well (optional)
+    { id: "DGS10",    query: dgs10Query },
+    { id: "SP500",    query: sp500Query },
+    { id: "M2SL",     query: m2slQuery },
+    { id: "GDP",      query: useIndicatorData("GDP") }, 
+    // e.g. if you still want "GDP" repeated in subSeries
   ];
 
   // 4) We'll store a ref for exporting the single editable chart
@@ -102,6 +104,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
+        
         {/* Logo / Sign in / Sign up */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
@@ -113,14 +116,21 @@ export default function HomePage() {
               priority
             />
           </div>
+
+          {/* Buttons that link to /login and /signup */}
           <div className="flex justify-center gap-4">
-            <Button variant="outline" className="bg-white hover:bg-gray-100">
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign In
+            <Button variant="outline" className="bg-white hover:bg-gray-100" asChild>
+              <Link href="/login">
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign In
+              </Link>
             </Button>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Sign Up
+
+            <Button asChild>
+              <Link href="/signup">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Sign Up
+              </Link>
             </Button>
           </div>
         </div>
@@ -141,15 +151,14 @@ export default function HomePage() {
               {/* Put the chart in a ref container */}
               <div ref={chartRef}>
                 <EconomicChart
-                  title={gdp.description}     // "Nominal GDP" typically
-                  // Omit the old "subtitle" or keep a shorter label
-                  subtitle=""
+                  title={gdp.description}
+                  subtitle=""  // e.g. omit or set a short label
                   data={gdp.data}
                   color="#6E59A5"
                   isEditable
                 />
               </div>
-              {/* Export buttons appear if it's editable */}
+              {/* Export buttons for the editable chart */}
               <div className="mt-2 flex gap-2">
                 <Button variant="outline" onClick={handleExportPNG}>
                   Export PNG
@@ -165,7 +174,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* 7 non-editable series below (plus optional "GDP" if you want it repeated) */}
+        {/* 8 sub-series below */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {subSeries.map(({ id, query }) => {
             const { data: rows, isLoading, error } = query;
