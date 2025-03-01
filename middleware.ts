@@ -1,59 +1,65 @@
 // FILE: middleware.ts
-import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-// Middleware only runs on matched routes below (see "config" at bottom).
+/**
+ * This middleware will run only on paths matching the 'config.matcher' below.
+ * We protect '/premium', but do NOT block '/', '/login', or other pages.
+ */
 export async function middleware(request: NextRequest) {
-  // We'll keep a modifiable response to set cookies if needed
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  // We build a modifiable response for re-issuing cookies if needed
+  let supabaseResponse = NextResponse.next();
 
-  // Create the server client with correct cookies usage
+  // Create the server client with correct cookie usage.
+  // 1) read from request.cookies.getAll()
+  // 2) set cookies on both request & supabaseResponse
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          // We must read from request.cookies.getAll()
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // The official pattern is to set them on both "request" and "supabaseResponse"
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          // 1) update the in-flight request cookies
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
+          });
+
+          // 2) create a new NextResponse referencing the updated request
           supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+
+          // 3) set cookies on the response so they are sent to the user
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, options);
+          });
         },
       },
     }
   );
 
-  // Example: get the user session
+  // Check if there's a logged-in user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If no user, redirect them to login page (e.g. /login)
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/signup') &&
-    !request.nextUrl.pathname.startsWith('/api') // optional
-  ) {
+  // If no user, redirect to /login
+  if (!user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
+    url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // If the user is valid or route is unprotected, proceed
+  // Otherwise, user is authenticated => proceed
   return supabaseResponse;
 }
 
-// Next.js route matcher
+/**
+ * Only match `/premium` routes:
+ * - e.g., `/premium` or `/premium/whatever`
+ * - Leaves other paths (like `/`) public
+ */
 export const config = {
-  // This pattern means: everything except Next.js assets or static files
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ["/premium/:path*"],
 };
