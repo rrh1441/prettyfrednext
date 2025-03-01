@@ -1,34 +1,35 @@
 // FILE: lib/supabaseServerClient.ts
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 /**
- * Creates a Supabase server client for use in Server Components or
- * for SSR functions.
+ * Creates a server-side Supabase client,
+ * using the "getAll"/"setAll" pattern from your SupabaseAuthGuide.md
  */
-export function createServerSupabaseClient() {
-  // 1) Get the cookie store from Next.js
-  const cookieStore = cookies();
+export async function createServerClientSupabase() {
+  // 1) "await" so we get a real cookie store object (not a Promise)
+  const cookieStore = await cookies();
 
-  // 2) Return a server client with correct cookie handling
+  // 2) Return a Supabase client that can read/write cookies
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          // Only getAll is allowed
+          // Now cookieStore is an object; .getAll() is valid
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          // If you rely on the middleware to handle sessions,
+          // you can ignore or wrap in try/catch:
           try {
-            // If you are inside a Server Component, you can attempt to set each cookie:
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, value, options);
             });
           } catch {
-            // According to the guide, if this code is called from a pure Server Component,
-            // we can ignore the "attempted to set cookie" error. 
+            // No-op in SSR or if setAll is not needed
           }
         },
       },
