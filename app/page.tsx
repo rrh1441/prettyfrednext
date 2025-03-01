@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";            // for navigation
 import html2canvas from "html2canvas";
 import { LogIn, UserPlus } from "lucide-react";
 
@@ -11,7 +10,11 @@ import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
 
+// 1) Import your new modal:
+import { AuthModal } from "@/components/auth/auth-modal";
+
 /** 
+ * Utility: Convert FRED rows to { date, value } arrays.
  * Removes "?? 0" fallback so `null` stays `null`, 
  * preserving gaps in the chart.
  */
@@ -27,18 +30,23 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
       year: "numeric",
       month: "short",
     });
-    return { date: label, value: r.value }; 
+    return { date: label, value: r.value };
   });
 
   return { data, description };
 }
 
 export default function HomePage() {
+  // For showing/hiding the AuthModal
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  // Which tab to open by default ("login" or "signup")
+  const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup">("login");
+
   // 1) Now we fetch "GDP" (Nominal GDP) instead of "GDPC1".
   const gdpQuery = useIndicatorData("GDP");
   const gdp = transformIndicatorData(gdpQuery.data);
 
-  // 2) The other series are unchanged
+  // 2) Other series remain unchanged
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
@@ -57,7 +65,6 @@ export default function HomePage() {
     { id: "SP500",    query: sp500Query },
     { id: "M2SL",     query: m2slQuery },
     { id: "GDP",      query: useIndicatorData("GDP") }, 
-    // e.g. if you still want "GDP" repeated in subSeries
   ];
 
   // 4) We'll store a ref for exporting the single editable chart
@@ -87,7 +94,7 @@ export default function HomePage() {
 
   // 4C) Helper: Export CSV
   function handleExportCSV() {
-    if (!gdp.data || gdp.data.length === 0) return; 
+    if (!gdp.data || gdp.data.length === 0) return;
     let csv = "date,value\n";
     gdp.data.forEach((pt) => {
       csv += `${pt.date},${pt.value ?? ""}\n`;
@@ -104,8 +111,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
-        
-        {/* Logo / Sign in / Sign up */}
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Image
@@ -117,20 +123,28 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Buttons that link to /login and /signup */}
+          {/* Replacing old /login /signup links with a modal approach */}
           <div className="flex justify-center gap-4">
-            <Button variant="outline" className="bg-white hover:bg-gray-100" asChild>
-              <Link href="/login">
-                <LogIn className="mr-2 h-4 w-4" />
-                Sign In
-              </Link>
+            <Button
+              variant="outline"
+              className="bg-white hover:bg-gray-100"
+              onClick={() => {
+                setAuthDefaultTab("login");
+                setAuthModalOpen(true);
+              }}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Sign In
             </Button>
 
-            <Button asChild>
-              <Link href="/signup">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Sign Up
-              </Link>
+            <Button
+              onClick={() => {
+                setAuthDefaultTab("signup");
+                setAuthModalOpen(true);
+              }}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Sign Up
             </Button>
           </div>
         </div>
@@ -152,7 +166,7 @@ export default function HomePage() {
               <div ref={chartRef}>
                 <EconomicChart
                   title={gdp.description}
-                  subtitle=""  // e.g. omit or set a short label
+                  subtitle="" // e.g. omit or set a short label
                   data={gdp.data}
                   color="#6E59A5"
                   isEditable
@@ -238,6 +252,13 @@ export default function HomePage() {
             );
           })}
         </div>
+
+        {/* 5) Render the AuthModal (hidden until authModalOpen = true) */}
+        <AuthModal
+          open={authModalOpen}
+          onOpenChange={setAuthModalOpen}
+          defaultTab={authDefaultTab}
+        />
       </div>
     </div>
   );
