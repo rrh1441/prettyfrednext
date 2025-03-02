@@ -1,3 +1,5 @@
+/* FILE: app/pro/MembersClient.tsx */
+
 "use client";
 
 import React, {
@@ -54,14 +56,11 @@ export default function MembersClient({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // ---- Helper to fetch row data from Supabase,
-  //      limiting to newest ~2500 rows, then reversing.
+  // ---- Helper to fetch row data from Supabase
   const fetchSeriesRows = useCallback(async (metas: SeriesMeta[]): Promise<SeriesData[]> => {
     const results: SeriesData[] = [];
 
     for (const m of metas) {
-      // Query only the newest 2500 rows (daily data can be huge)
-      // order descending => newest first
       const { data: rows, error } = await supabase
         .from("fred_data")
         .select("date, value")
@@ -74,10 +73,9 @@ export default function MembersClient({
         continue;
       }
 
-      // reverse so the final array is oldest -> newest for the chart
-      const reversed = (rows as FredRow[] ?? []).reverse();
-
-      const chartData = reversed.map((r) => ({
+      // reverse so final array is oldest->newest
+      const reversed = (rows ?? []).reverse();
+      const chartData = reversed.map((r: FredRow) => ({
         date: r.date,
         value: r.value,
       }));
@@ -115,11 +113,10 @@ export default function MembersClient({
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting) {
-          // load next chunk
           loadNextChunk();
         }
       },
-      { threshold: 0.25 } // more forgiving than 1.0
+      { threshold: 0.25 }
     );
 
     observer.observe(node);
@@ -144,7 +141,7 @@ export default function MembersClient({
       return;
     }
 
-    // Filter out items we already have loaded
+    // Filter out items we already have
     const toFetch: SeriesMeta[] = [];
     for (const f of found) {
       if (!loadedSeries.some((ls) => ls.series_id === f.series_id)) {
@@ -155,7 +152,6 @@ export default function MembersClient({
     if (toFetch.length > 0) {
       const newlyFetched = await fetchSeriesRows(toFetch);
       setLoadedSeries((prev) => [...prev, ...newlyFetched]);
-      // remove any from 'unused'
       setUnused((prev) => prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id)));
     }
   }
@@ -231,7 +227,6 @@ export default function MembersClient({
       return;
     }
 
-    // Insert into 'series_requests'
     const { error } = await supabase
       .from("series_requests")
       .insert([{ requested_series_id, notes }]);
@@ -247,7 +242,6 @@ export default function MembersClient({
   // ---- Render
   return (
     <div className="p-4">
-      
       <div className="flex flex-wrap gap-2 mb-4">
         <Input
           placeholder="Search by series_id or description..."

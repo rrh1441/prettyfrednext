@@ -1,3 +1,5 @@
+/* FILE: app/pro/page.tsx */
+
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import MembersClient from "./MembersClient";
@@ -95,7 +97,7 @@ const FULL_SERIES_LIST = [
   { series_id: "TOTALSL", description: "Consumer Credit Outstanding (Total)" },
   { series_id: "TOTCI", description: "Total Construction Spending" },
   { series_id: "TWEXB", description: "Trade Weighted U.S. Dollar Index" },
-  { series_id: "U6RATE", description: "U6 Unemployment Rate (a broader measure of unemployment)" },
+  { series_id: "U6RATE", description: "U6 Unemployment Rate" },
   { series_id: "UMCSENT", description: "University of Michigan Consumer Sentiment Index" },
   { series_id: "UNRATE", description: "Civilian Unemployment Rate" },
   { series_id: "UNRATENSA", description: "Civilian Unemployment Rate: Not Seasonally Adjusted" },
@@ -106,12 +108,12 @@ const FULL_SERIES_LIST = [
 ];
 
 /**
- * Renders the premium page.
+ * Renders the Pro page.
  * - SSR for the first 10 items
  * - the rest as metadata for lazy loading
  * - entire list passed for "Show All Series" modal
  */
-export default async function PremiumPage() {
+export default async function ProPage() {
   // 1) Separate the first 10 vs. the remaining
   const first10 = FULL_SERIES_LIST.slice(0, 10);
   const rest = FULL_SERIES_LIST.slice(10);

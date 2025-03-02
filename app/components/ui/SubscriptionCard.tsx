@@ -1,3 +1,5 @@
+/* FILE: app/components/ui/SubscriptionCard.tsx */
+
 "use client";
 
 import React from "react";
@@ -26,9 +28,10 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
             <li>Realtime data updates</li>
           </ul>
         </div>
-        {/* Premium Section */}
+
+        {/* Pro Section (formerly "Premium") */}
         <div className="p-4 border rounded">
-          <h3 className="text-xl font-semibold mb-2">Premium</h3>
+          <h3 className="text-xl font-semibold mb-2">Pro</h3>
           <ul className="list-disc pl-5 text-gray-700 space-y-1">
             <li>Completely customize your charts</li>
             <li>Access to 80+ data series with realtime updates</li>
@@ -40,15 +43,15 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
 
       {/* CTA Button */}
       <button
-        onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Premium clicked")}
+        onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Pro clicked")}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded transition"
       >
-        Unlock Premium
+        Unlock Pro
       </button>
 
-      {/* Coming Soon to Premium */}
+      {/* Coming Soon to Pro */}
       <div className="mt-6 border-t border-gray-200 pt-4">
-        <h4 className="text-lg font-semibold mb-2">Coming Soon to Premium</h4>
+        <h4 className="text-lg font-semibold mb-2">Coming Soon to Pro</h4>
         <ul className="list-disc pl-5 text-gray-700 space-y-1">
           <li>Regression Analysis</li>
           <li>Custom Transformations</li>
