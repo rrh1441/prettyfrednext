@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "./login-form";
@@ -12,8 +12,19 @@ interface AuthModalProps {
   defaultTab?: "login" | "signup";
 }
 
-export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModalProps) {
+export function AuthModal({
+  open,
+  onOpenChange,
+  defaultTab = "login",
+}: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<"login" | "signup">(defaultTab);
+
+  useEffect(() => {
+    // Each time the modal re-opens, pick the parent's defaultTab
+    if (open) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -24,12 +35,13 @@ export function AuthModal({ open, onOpenChange, defaultTab = "login" }: AuthModa
           </DialogTitle>
           <DialogDescription className="text-center">
             {activeTab === "login"
-              ? "Enter your email and password to sign in to your account."
+              ? "Enter your email and password to sign in."
               : "Enter your details to create a new account."}
           </DialogDescription>
         </DialogHeader>
+
         <Tabs
-          defaultValue={defaultTab}
+          // Fully controlled
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as "login" | "signup")}
         >
