@@ -9,13 +9,12 @@ import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
-
-// 1) Import your new modal:
+// Import your new AuthModal
 import { AuthModal } from "@/components/auth/auth-modal";
 
 /** 
  * Utility: Convert FRED rows to { date, value } arrays.
- * Removes "?? 0" fallback so `null` stays `null`, 
+ * Removes "?? 0" fallback so `null` stays `null",
  * preserving gaps in the chart.
  */
 function transformIndicatorData(rows: FredRow[] | undefined) {
@@ -57,14 +56,14 @@ export default function HomePage() {
 
   // 3) Sub-series remain the same
   const subSeries = [
-    { id: "UNRATE",  query: unrateQuery },
+    { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
-    { id: "PAYEMS",   query: payemsQuery },
+    { id: "PAYEMS", query: payemsQuery },
     { id: "FEDFUNDS", query: fedFundsQuery },
-    { id: "DGS10",    query: dgs10Query },
-    { id: "SP500",    query: sp500Query },
-    { id: "M2SL",     query: m2slQuery },
-    { id: "GDP",      query: useIndicatorData("GDP") }, 
+    { id: "DGS10", query: dgs10Query },
+    { id: "SP500", query: sp500Query },
+    { id: "M2SL", query: m2slQuery },
+    { id: "GDP", query: useIndicatorData("GDP") },
   ];
 
   // 4) We'll store a ref for exporting the single editable chart
@@ -123,12 +122,13 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Replacing old /login /signup links with a modal approach */}
+          {/* Replace old /login /signup links with modal approach */}
           <div className="flex justify-center gap-4">
             <Button
               variant="outline"
               className="bg-white hover:bg-gray-100"
               onClick={() => {
+                // Use "login" tab
                 setAuthDefaultTab("login");
                 setAuthModalOpen(true);
               }}
@@ -139,6 +139,7 @@ export default function HomePage() {
 
             <Button
               onClick={() => {
+                // Use "signup" tab
                 setAuthDefaultTab("signup");
                 setAuthModalOpen(true);
               }}
@@ -149,7 +150,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Subscription card on left, top chart (Nominal GDP) on right */}
+        {/* Subscription card + top chart (Nominal GDP) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <SubscriptionCard onSubscribe={() => console.log("Subscribe CTA clicked")} />
           {gdpQuery.isLoading ? (
@@ -162,17 +163,17 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="flex flex-col">
-              {/* Put the chart in a ref container */}
+              {/* Chart container */}
               <div ref={chartRef}>
                 <EconomicChart
                   title={gdp.description}
-                  subtitle="" // e.g. omit or set a short label
+                  subtitle=""
                   data={gdp.data}
                   color="#6E59A5"
                   isEditable
                 />
               </div>
-              {/* Export buttons for the editable chart */}
+              {/* Export buttons */}
               <div className="mt-2 flex gap-2">
                 <Button variant="outline" onClick={handleExportPNG}>
                   Export PNG
@@ -209,6 +210,7 @@ export default function HomePage() {
               );
             }
 
+            // Provide short subtitles
             let sub = "";
             switch (id) {
               case "UNRATE":
@@ -253,7 +255,7 @@ export default function HomePage() {
           })}
         </div>
 
-        {/* 5) Render the AuthModal (hidden until authModalOpen = true) */}
+        {/* AuthModal - hidden until authModalOpen */}
         <AuthModal
           open={authModalOpen}
           onOpenChange={setAuthModalOpen}
