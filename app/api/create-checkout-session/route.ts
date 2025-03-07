@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     // 3) Initialize Stripe
     const stripe = new Stripe(stripeSecret, {
-      apiVersion: "2025-01-27.acacia", // your chosen version
+      apiVersion: "2025-02-24.acacia", // your chosen version
     });
 
     // 4) Hardcode or map to actual price IDs

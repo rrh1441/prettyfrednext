@@ -1,10 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "./login-form";
-import { SignupForm } from "./signup-form";
+import SignupForm from "./signup-form"; // Import your new default export
 
 interface AuthModalProps {
   open: boolean;
@@ -54,7 +60,9 @@ export function AuthModal({
             <LoginForm onSuccess={() => onOpenChange(false)} />
           </TabsContent>
           <TabsContent value="signup" className="mt-4">
-            <SignupForm onSuccess={() => onOpenChange(false)} />
+            {/* The new SignupForm does its own redirect to Stripe,
+                so we don't pass onSuccess here. */}
+            <SignupForm />
           </TabsContent>
         </Tabs>
       </DialogContent>
