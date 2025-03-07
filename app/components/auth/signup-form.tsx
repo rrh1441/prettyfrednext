@@ -4,22 +4,31 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Check, Loader2, Sparkles } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { AlertCircle, Loader2 } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
-// ✅ IMPORT your Supabase client
-import { supabase } from "@/lib/supabaseClient";
-
+/** 1) Zod Schema for the sign-up form fields. */
 const signupSchema = z
   .object({
     name: z
       .string()
       .min(2, { message: "Name must be at least 2 characters" })
       .max(100, { message: "Name must be less than 100 characters" })
-      .regex(/^[a-zA-Z\s-]+$/, { message: "Name can only contain letters, spaces and hyphens" }),
+      .regex(/^[a-zA-Z\s-]+$/, {
+        message: "Name can only contain letters, spaces, and hyphens",
+      }),
     email: z.string().email({ message: "Please enter a valid email address" }),
     password: z
       .string()
@@ -34,16 +43,32 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
+/** 2) Type for the form values. */
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-interface SignupFormProps {
-  onSuccess: () => void;
-}
+/** 3) Hard-coded monthly/annual pricing. */
+const prices = {
+  monthly: 8,
+  annual: 80,
+};
 
-export function SignupForm({ onSuccess }: SignupFormProps) {
+/** 4) The main list of Pro features for display. */
+const features = [
+  "Completely customize your charts",
+  "Access to 80+ data series with realtime updates",
+  "Export data in multiple formats",
+  "Request any FRED data series",
+];
+
+export default function SignupForm() {
+  // 5) Plan toggle: monthly vs annual
+  const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
+
+  // 6) States for sign-up
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 7) React Hook Form setup
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -54,17 +79,17 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     },
   });
 
+  /** 8) Handle sign-up and immediately trigger Stripe checkout. */
   async function onSubmit(data: SignupFormValues) {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Call Supabase sign-up
+      // A) Sign up with Supabase
       const { error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          // Optionally store user name or other metadata
           data: {
             full_name: data.name,
           },
@@ -75,8 +100,22 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         throw new Error(signUpError.message);
       }
 
-      // If successful
-      onSuccess();
+      // B) If sign-up worked, create a Stripe checkout session:
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }), // "monthly" or "annual"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create checkout session");
+      }
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error("No session URL returned from server");
+      }
+
+      // C) Redirect user to Stripe Checkout
+      window.location.href = url;
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -88,74 +127,150 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     }
   }
 
+  // 9) Render a “paywall-like” sign-up experience: user picks plan,
+  // sees Pro feature bullet points, then completes the sign-up form.
   return (
-    <div className="space-y-4">
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-8">
+      <div className="w-full max-w-md border border-gray-200 shadow-lg rounded-md p-6">
+        {/* Heading */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold">You’ve reached your free limit</h1>
+          <p className="text-base text-gray-600">
+            Unlock all PrettyFRED Pro features
+          </p>
+        </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Full name</FormLabel>
-                <FormControl>
-                  <Input placeholder="John Doe" autoComplete="name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Plan toggle */}
+        <div className="flex justify-center space-x-2 mb-4">
+          <button
+            onClick={() => setPlan("monthly")}
+            className={`px-4 py-2 rounded-md font-semibold text-sm ${
+              plan === "monthly"
+                ? "bg-gray-100 text-black"
+                : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setPlan("annual")}
+            className={`px-4 py-2 rounded-md font-semibold text-sm ${
+              plan === "annual"
+                ? "bg-gray-100 text-black"
+                : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+            }`}
+          >
+            Annual
+          </button>
+        </div>
 
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="you@example.com" type="email" autoComplete="email" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Price info */}
+        <div className="text-center mb-4">
+          <div className="flex items-baseline justify-center gap-1">
+            <span className="text-4xl font-bold">${prices[plan]}</span>
+            <span className="text-gray-500">
+              {plan === "monthly" ? "/month" : "/year"}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">
+            {plan === "monthly"
+              ? "Less than a couple cappuccinos each month"
+              : "Save more when paying annually"}
+          </p>
+        </div>
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input placeholder="••••••••" type="password" autoComplete="new-password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Feature bullet points */}
+        <div className="bg-gray-50 p-4 rounded-lg mb-6">
+          <div className="flex items-center gap-2 text-sm font-medium mb-2">
+            <Sparkles className="h-4 w-4 text-yellow-400" />
+            Everything you get with Pro:
+          </div>
+          <ul className="space-y-1 text-sm">
+            {features.map((feature, idx) => (
+              <li key={idx} className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-500" />
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input placeholder="••••••••" type="password" autoComplete="new-password" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        {/* Signup Error Alert */}
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-          <div className="pt-2">
+        {/* Signup form */}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Full Name */}
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Email */}
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Password */}
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Confirm Password */}
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Submit */}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
@@ -163,12 +278,16 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
                   Creating account...
                 </>
               ) : (
-                "Create account"
+                `Create Account and Subscribe`
               )}
             </Button>
-          </div>
-        </form>
-      </Form>
+
+            <p className="text-xs text-center text-gray-500 mt-2">
+              Secure payment powered by Stripe. Cancel anytime.
+            </p>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }
