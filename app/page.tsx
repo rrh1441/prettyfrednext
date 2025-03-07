@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { AuthModal } from "@/components/auth/auth-modal";
 
 /** 
- * Utility: Convert FRED rows to { date, value } arrays.
+ * Utility: Convert FR ED rows to { date, value } arrays.
  * Removes "?? 0" fallback so `null` stays `null",
  * preserving gaps in the chart.
  */
