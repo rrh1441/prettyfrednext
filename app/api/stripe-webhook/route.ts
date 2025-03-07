@@ -58,6 +58,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
   try {
     const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY || "", {
+      // Keeping your exact requested API version
       apiVersion: "2025-02-24.acacia",
     });
     event = stripe.webhooks.constructEvent(buf, signature, webhookSecret);
@@ -71,8 +72,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: "ignored", event: event.type });
   }
 
-  // 6) Build Supabase server client
-  const cookieStore = cookies();
+  // 6) **CRITICAL CHANGE**: Await cookies() so .getAll() works without type error
+  const cookieStore = await cookies();
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -170,10 +172,7 @@ export async function POST(request: Request) {
           plan = mapPriceIdToPlan(line.price.id);
         }
 
-        // Or if you stored plan in metadata:
-        // plan = invoice.metadata?.plan || null;
-
-        // If you have a name in metadata, you can do:
+        // If you have a name in metadata
         const name = invoice.metadata?.name || null;
 
         await upsertSubscriber(email, name, plan, "active");
@@ -189,7 +188,6 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Possibly parse plan from the invoice line or metadata
         let plan = null;
         const line = invoice.lines.data[0];
         if (line?.price?.id) {
