@@ -134,7 +134,6 @@ export default function SignupForm() {
       <div className="w-full max-w-md border border-gray-200 shadow-lg rounded-md p-6">
         {/* Heading */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">You’ve reached your free limit</h1>
           <p className="text-base text-gray-600">
             Unlock all PrettyFRED Pro features
           </p>
@@ -174,7 +173,6 @@ export default function SignupForm() {
           </div>
           <p className="text-sm text-gray-600">
             {plan === "monthly"
-              ? "Less than a couple cappuccinos each month"
               : "Save more when paying annually"}
           </p>
         </div>
