@@ -58,7 +58,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
   try {
     const stripe = new Stripe(process.env.STRIPE_TEST_SECRET_KEY || "", {
-      // Keeping your exact requested API version
+      // Keep your requested version
       apiVersion: "2025-02-24.acacia",
     });
     event = stripe.webhooks.constructEvent(buf, signature, webhookSecret);
@@ -72,9 +72,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: "ignored", event: event.type });
   }
 
-  // 6) **CRITICAL CHANGE**: Await cookies() so .getAll() works without type error
+  // 6) Build Supabase server client
   const cookieStore = await cookies();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -104,9 +103,11 @@ export async function POST(request: Request) {
     status: string
   ) {
     try {
+      // Instead of .insert(...).onConflict("email").merge(...),
+      // use .upsert(..., { onConflict: "email" }).
       const { error } = await supabase
         .from("subscribers")
-        .insert([
+        .upsert(
           {
             email,
             name,
@@ -114,14 +115,10 @@ export async function POST(request: Request) {
             status,
             updated_at: new Date().toISOString(),
           },
-        ])
-        .onConflict("email")
-        .merge({
-          name,
-          plan,
-          status,
-          updated_at: new Date().toISOString(),
-        });
+          {
+            onConflict: "email",
+          }
+        );
 
       if (error) {
         console.error(`Error upserting subscriber (email=${email}):`, error.message);
@@ -165,7 +162,6 @@ export async function POST(request: Request) {
         }
 
         // Optionally parse plan from the first invoice line
-        // E.g., using the price ID => mapPriceIdToPlan()
         let plan = null;
         const line = invoice.lines.data[0];
         if (line?.price?.id) {
@@ -210,10 +206,10 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Parse name from metadata or somewhere else
+        // Parse name from metadata
         const name = sub.metadata?.name || null;
 
-        // The plan might be gleaned from the price ID
+        // The plan might come from the first item’s price
         let plan = null;
         const item = sub.items?.data[0];
         if (item?.price?.id) {
