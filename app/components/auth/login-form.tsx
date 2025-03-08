@@ -6,11 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-// ✅ IMPORT your Supabase client
 import { supabase } from "@/lib/supabaseClient";
 
 const loginSchema = z.object({
@@ -41,7 +46,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setError(null);
 
     try {
-      // Call Supabase sign-in
+      // Attempt sign-in with Supabase
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -51,8 +56,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         throw new Error(signInError.message);
       }
 
-      // If successful
+      // If successful: call parent, then redirect
       onSuccess();
+      window.location.href = "/pro"; // redirect to prettyfred.com/pro in production
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -82,7 +88,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="you@example.com" type="email" autoComplete="email" {...field} />
+                  <Input
+                    placeholder="you@example.com"
+                    type="email"
+                    autoComplete="email"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -96,7 +107,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input placeholder="••••••••" type="password" autoComplete="current-password" {...field} />
+                  <Input
+                    placeholder="••••••••"
+                    type="password"
+                    autoComplete="current-password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
