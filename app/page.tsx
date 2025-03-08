@@ -1,8 +1,5 @@
-// 1) Must be the first statement
-export const dynamic = "force-dynamic";
-
-// 2) Next line for client components
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -18,7 +15,7 @@ import { AuthModal } from "@/components/auth/auth-modal";
 
 /** 
  * Utility: Convert FRED rows to { date, value } arrays.
- * Keeps `null` for missing data.
+ * Keeps null for missing data.
  */
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
@@ -39,16 +36,16 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
 }
 
 export default function HomePage() {
-  // 1) For showing/hiding the AuthModal
+  // For showing/hiding the AuthModal
   const [authModalOpen, setAuthModalOpen] = useState(false);
   // Which tab to open by default ("login" or "signup")
   const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup">("login");
 
-  // 2) Read "?auth=login" or "?auth=signup" from the URL
+  // Read ?auth=login or ?auth=signup from the URL
   const searchParams = useSearchParams();
   const authParam = searchParams.get("auth");
 
-  // 3) If the user visits /?auth=login or /?auth=signup, open the AuthModal automatically
+  // If the user visits /?auth=login or /?auth=signup, open the AuthModal automatically
   useEffect(() => {
     if (authParam === "login") {
       setAuthDefaultTab("login");
@@ -59,11 +56,11 @@ export default function HomePage() {
     }
   }, [authParam]);
 
-  // 4) Data fetching for "GDP" series
+  // 1) Fetch "GDP" (Nominal GDP)
   const gdpQuery = useIndicatorData("GDP");
   const gdp = transformIndicatorData(gdpQuery.data);
 
-  // 5) Other series remain unchanged
+  // 2) Other series
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
@@ -72,7 +69,7 @@ export default function HomePage() {
   const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
 
-  // 6) Sub-series array
+  // Sub-series array
   const subSeries = [
     { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
@@ -84,7 +81,7 @@ export default function HomePage() {
     { id: "GDP", query: useIndicatorData("GDP") },
   ];
 
-  // 7) Chart refs & export helpers
+  // Chart refs & export helpers
   const chartRef = useRef<HTMLDivElement | null>(null);
 
   async function handleExportPNG() {
@@ -122,14 +119,14 @@ export default function HomePage() {
     URL.revokeObjectURL(url);
   }
 
-  // 8) OnSubscribe callback for "Unlock Pro" button
+  // OnSubscribe callback for "Unlock Pro" button
   function handleSubscribe() {
     // We want to open the AuthModal in signup mode
     setAuthDefaultTab("signup");
     setAuthModalOpen(true);
   }
 
-  // 9) Render
+  // Render
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
