@@ -34,10 +34,11 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If no user, redirect to /login
+  // If no user => redirect to home with ?auth=login
   if (!user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/";
+    url.searchParams.set("auth", "login"); 
     return NextResponse.redirect(url);
   }
 
