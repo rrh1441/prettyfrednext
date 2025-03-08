@@ -1,7 +1,8 @@
-"use client";
-
-// Force this page to be fully dynamic, so useSearchParams() won't trigger a build error
+// 1) Must be the first statement
 export const dynamic = "force-dynamic";
+
+// 2) Next line for client components
+"use client";
 
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
