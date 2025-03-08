@@ -43,16 +43,15 @@ const signupSchema = z
     path: ["confirmPassword"],
   });
 
-/** 2) Type for the form values. */
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-/** 3) Hard-coded monthly/annual pricing. */
+/** Hard-coded monthly/annual pricing. */
 const prices = {
   monthly: 8,
   annual: 80,
 };
 
-/** 4) The main list of Pro features for display. */
+/** The main list of Pro features for display. */
 const features = [
   "Completely customize your charts",
   "Access to 80+ data series with realtime updates",
@@ -61,14 +60,14 @@ const features = [
 ];
 
 export default function SignupForm() {
-  // 5) Plan toggle: monthly vs annual
+  // Plan toggle: monthly vs annual
   const [plan, setPlan] = useState<"monthly" | "annual">("monthly");
 
-  // 6) States for sign-up
+  // States for sign-up
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 7) React Hook Form setup
+  // React Hook Form setup
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -79,7 +78,7 @@ export default function SignupForm() {
     },
   });
 
-  /** 8) Handle sign-up and immediately trigger Stripe checkout. */
+  /** Handle sign-up and immediately trigger Stripe checkout. */
   async function onSubmit(data: SignupFormValues) {
     setIsLoading(true);
     setError(null);
@@ -127,16 +126,14 @@ export default function SignupForm() {
     }
   }
 
-  // 9) Render a “paywall-like” sign-up experience: user picks plan,
-  // sees Pro feature bullet points, then completes the sign-up form.
+  // Render a “paywall-like” sign-up experience
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4 py-8">
+    <div className="h-screen w-full overflow-y-auto bg-white px-4 py-8 flex items-center justify-center">
       <div className="w-full max-w-md border border-gray-200 shadow-lg rounded-md p-6">
         {/* Heading */}
         <div className="text-center mb-6">
-          <p className="text-base text-gray-600">
-            Unlock all PrettyFRED Pro features
-          </p>
+          {/* Remove "You’ve reached your free limit" */}
+          <h1 className="text-2xl font-bold">Unlock all PrettyFRED Pro features</h1>
         </div>
 
         {/* Plan toggle */}
@@ -171,10 +168,10 @@ export default function SignupForm() {
               {plan === "monthly" ? "/month" : "/year"}
             </span>
           </div>
-          <p className="text-sm text-gray-600">
-            {plan === "monthly"
-              : "Save more when paying annually"}
-          </p>
+          {/* Remove cappuccino line & show only annual text if needed */}
+          {plan === "annual" && (
+            <p className="text-sm text-gray-600">Save more when paying annually</p>
+          )}
         </div>
 
         {/* Feature bullet points */}
@@ -227,11 +224,7 @@ export default function SignupForm() {
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      {...field}
-                    />
+                    <Input type="email" placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
