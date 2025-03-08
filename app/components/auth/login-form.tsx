@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/form";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/lib/supabaseClient";
 
+//
+// 1) Zod schema for email + password
+//
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -25,14 +27,21 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+//
+// 2) Interface for props
+//
 interface LoginFormProps {
-  onSuccess: () => void;
+  onSuccess: () => void; // e.g. closes modal
 }
 
+//
+// 3) Main component
+//
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // React Hook Form with zod
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -41,24 +50,32 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     },
   });
 
+  //
+  // 4) Submit handler: POST to /api/login
+  //
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Attempt sign-in with Supabase
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      // Send credentials to your server-based login route
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
       });
 
-      if (signInError) {
-        throw new Error(signInError.message);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Invalid email or password");
       }
 
-      // If successful: call parent, then redirect
+      // If success: cookies are now set on the server side
       onSuccess();
-      window.location.href = "/pro"; // redirect to prettyfred.com/pro in production
+      window.location.href = "/pro"; // redirect or do whatever is needed
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -70,6 +87,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   }
 
+  //
+  // 5) Render the same UI layout
+  //
   return (
     <div className="space-y-4">
       {error && (
@@ -81,6 +101,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email Field */}
           <FormField
             control={form.control}
             name="email"
@@ -100,6 +121,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             )}
           />
 
+          {/* Password Field */}
           <FormField
             control={form.control}
             name="password"
@@ -119,6 +141,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             )}
           />
 
+          {/* Submit Button */}
           <div className="pt-2">
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
