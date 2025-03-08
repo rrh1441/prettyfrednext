@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import html2canvas from "html2canvas";
 import { LogIn, UserPlus } from "lucide-react";
@@ -9,13 +10,11 @@ import { useIndicatorData, FredRow } from "@/hooks/useIndicatorData";
 import EconomicChart from "@/components/EconomicChart";
 import SubscriptionCard from "@/components/ui/SubscriptionCard";
 import { Button } from "@/components/ui/button";
-// Import your new AuthModal
 import { AuthModal } from "@/components/auth/auth-modal";
 
 /** 
- * Utility: Convert FR ED rows to { date, value } arrays.
- * Removes "?? 0" fallback so `null` stays `null",
- * preserving gaps in the chart.
+ * Utility: Convert FRED rows to { date, value } arrays.
+ * Keeps `null` for missing data, preserving gaps.
  */
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
@@ -36,16 +35,31 @@ function transformIndicatorData(rows: FredRow[] | undefined) {
 }
 
 export default function HomePage() {
-  // For showing/hiding the AuthModal
+  // 1) For showing/hiding the AuthModal
   const [authModalOpen, setAuthModalOpen] = useState(false);
   // Which tab to open by default ("login" or "signup")
   const [authDefaultTab, setAuthDefaultTab] = useState<"login" | "signup">("login");
 
-  // 1) Now we fetch "GDP" (Nominal GDP) instead of "GDPC1".
+  // 2) Read "?auth=login" or "?auth=signup" from the URL
+  const searchParams = useSearchParams();
+  const authParam = searchParams.get("auth");
+
+  // 3) If the user visits /?auth=login or /?auth=signup, open the AuthModal automatically
+  useEffect(() => {
+    if (authParam === "login") {
+      setAuthDefaultTab("login");
+      setAuthModalOpen(true);
+    } else if (authParam === "signup") {
+      setAuthDefaultTab("signup");
+      setAuthModalOpen(true);
+    }
+  }, [authParam]);
+
+  // 4) Data fetching for "GDP" series
   const gdpQuery = useIndicatorData("GDP");
   const gdp = transformIndicatorData(gdpQuery.data);
 
-  // 2) Other series remain unchanged
+  // 5) Other series remain unchanged
   const unrateQuery = useIndicatorData("UNRATE");
   const cpiQuery = useIndicatorData("CPIAUCSL");
   const fedFundsQuery = useIndicatorData("FEDFUNDS");
@@ -54,7 +68,7 @@ export default function HomePage() {
   const sp500Query = useIndicatorData("SP500");
   const m2slQuery = useIndicatorData("M2SL");
 
-  // 3) Sub-series remain the same
+  // 6) Sub-series array
   const subSeries = [
     { id: "UNRATE", query: unrateQuery },
     { id: "CPIAUCSL", query: cpiQuery },
@@ -66,10 +80,9 @@ export default function HomePage() {
     { id: "GDP", query: useIndicatorData("GDP") },
   ];
 
-  // 4) We'll store a ref for exporting the single editable chart
+  // 7) Chart refs & export helpers
   const chartRef = useRef<HTMLDivElement | null>(null);
 
-  // 4A) Helper: Export PNG
   async function handleExportPNG() {
     if (!chartRef.current) return;
     const canvas = await html2canvas(chartRef.current);
@@ -80,7 +93,6 @@ export default function HomePage() {
     link.click();
   }
 
-  // 4B) Helper: Export JPG
   async function handleExportJPG() {
     if (!chartRef.current) return;
     const canvas = await html2canvas(chartRef.current);
@@ -91,7 +103,6 @@ export default function HomePage() {
     link.click();
   }
 
-  // 4C) Helper: Export CSV
   function handleExportCSV() {
     if (!gdp.data || gdp.data.length === 0) return;
     let csv = "date,value\n";
@@ -107,6 +118,14 @@ export default function HomePage() {
     URL.revokeObjectURL(url);
   }
 
+  // 8) OnSubscribe callback for "Unlock Pro" button
+  function handleSubscribe() {
+    // We want to open the AuthModal in signup mode
+    setAuthDefaultTab("signup");
+    setAuthModalOpen(true);
+  }
+
+  // 9) Render
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-12">
@@ -122,13 +141,12 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Replace old /login /signup links with modal approach */}
+          {/* Buttons to manually open the modal: login or signup */}
           <div className="flex justify-center gap-4">
             <Button
               variant="outline"
               className="bg-white hover:bg-gray-100"
               onClick={() => {
-                // Use "login" tab
                 setAuthDefaultTab("login");
                 setAuthModalOpen(true);
               }}
@@ -139,7 +157,6 @@ export default function HomePage() {
 
             <Button
               onClick={() => {
-                // Use "signup" tab
                 setAuthDefaultTab("signup");
                 setAuthModalOpen(true);
               }}
@@ -152,7 +169,7 @@ export default function HomePage() {
 
         {/* Subscription card + top chart (Nominal GDP) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <SubscriptionCard onSubscribe={() => console.log("Subscribe CTA clicked")} />
+          <SubscriptionCard onSubscribe={handleSubscribe} />
           {gdpQuery.isLoading ? (
             <div className="flex items-center justify-center h-80">
               Loading GDP...

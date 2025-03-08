@@ -1,5 +1,4 @@
 /* FILE: app/pro/layout.tsx */
-
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -40,22 +39,16 @@ export default async function ProLayout({
     data: { session },
   } = await supabase.auth.getSession();
 
-  // If not logged in, send them to /login
+  // If not logged in => bounce to home page, open login modal
   if (!session) {
-    redirect("/login");
+    redirect("/?auth=login");
   }
 
-  // 4) Retrieve subscriber record
-  //    If your 'subscribers' table has columns:
-  //       email (PK),
-  //       name,
-  //       plan,
-  //       status,
-  //    you can check if status === 'active'.
-  const userEmail = session.user.email;
+  // 4) Retrieve subscriber record if we do a paywall check
+  const userEmail = session?.user?.email;
   if (!userEmail) {
-    // If user object has no email (rare), treat them as unsubscribed
-    redirect("/signup");
+    // If user object has no email, treat them as unsubscribed => open signup
+    redirect("/?auth=signup");
   }
 
   const { data: subscriber } = await supabase
@@ -64,11 +57,11 @@ export default async function ProLayout({
     .eq("email", userEmail)
     .single();
 
-  // If there's no subscriber row or status != 'active', redirect them
+  // If no subscriber row or status != active => open signup tab
   if (!subscriber || subscriber.status !== "active") {
-    redirect("/signup");
+    redirect("/?auth=signup");
   }
 
-  // Otherwise, user is subscribed => show the children
+  // Otherwise, user is subscribed => render the Pro content
   return <>{children}</>;
 }

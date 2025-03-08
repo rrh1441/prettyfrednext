@@ -1,5 +1,4 @@
 /* FILE: app/components/ui/SubscriptionCard.tsx */
-
 "use client";
 
 import React from "react";
@@ -29,7 +28,7 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
           </ul>
         </div>
 
-        {/* Pro Section (formerly "Premium") */}
+        {/* Pro Section */}
         <div className="p-4 border rounded">
           <h3 className="text-xl font-semibold mb-2">Pro</h3>
           <ul className="list-disc pl-5 text-gray-700 space-y-1">
@@ -41,15 +40,15 @@ export default function SubscriptionCard({ onSubscribe }: SubscriptionCardProps)
         </div>
       </div>
 
-      {/* CTA Button */}
       <button
+        // If a parent passes onSubscribe, call it; otherwise log a message
         onClick={onSubscribe ? onSubscribe : () => console.log("Unlock Pro clicked")}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded transition"
       >
         Unlock Pro
       </button>
 
-      {/* Coming Soon to Pro */}
+      {/* Coming Soon */}
       <div className="mt-6 border-t border-gray-200 pt-4">
         <h4 className="text-lg font-semibold mb-2">Coming Soon to Pro</h4>
         <ul className="list-disc pl-5 text-gray-700 space-y-1">
