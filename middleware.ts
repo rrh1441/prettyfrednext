@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Otherwise, user is au thenticated => proceed
+  // Otherwise, user is authenticated => proceed
   return supabaseResponse;
 }
 
