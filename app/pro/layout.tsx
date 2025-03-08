@@ -1,4 +1,5 @@
 /* FILE: app/pro/layout.tsx */
+
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -53,11 +54,11 @@ export default async function ProLayout({
   //    you can check if status === 'active'.
   const userEmail = session.user.email;
   if (!userEmail) {
-    // If the user object has no email (rare), treat them as unsubscribed
+    // If user object has no email (rare), treat them as unsubscribed
     redirect("/signup");
   }
 
-  const { data: subscriber, error } = await supabase
+  const { data: subscriber } = await supabase
     .from("subscribers")
     .select("status")
     .eq("email", userEmail)
