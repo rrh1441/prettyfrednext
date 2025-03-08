@@ -1,5 +1,4 @@
 /* FILE: app/pro/layout.tsx */
-
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -10,10 +9,10 @@ export default async function ProLayout({
 }: {
   children: ReactNode;
 }) {
-  // 1) Get the actual cookie store object
+  // 1) "await cookies()" so we can read them
   const cookieStore = await cookies();
 
-  // 2) Create a server client using the recommended "getAll"/"setAll" pattern
+  // 2) Create a server client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,23 +27,47 @@ export default async function ProLayout({
               cookieStore.set(name, value, options);
             });
           } catch {
-            // No-op in SSR if needed
+            // no-op
           }
         },
       },
     }
   );
 
-  // 3) Check for a session
+  // 3) Check if the user has a valid session
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // If no session, redirect to /login
+  // If not logged in, send them to /login
   if (!session) {
     redirect("/login");
   }
 
-  // Otherwise, let them see the Pro content
+  // 4) Retrieve subscriber record
+  //    If your 'subscribers' table has columns:
+  //       email (PK),
+  //       name,
+  //       plan,
+  //       status,
+  //    you can check if status === 'active'.
+  const userEmail = session.user.email;
+  if (!userEmail) {
+    // If the user object has no email (rare), treat them as unsubscribed
+    redirect("/signup");
+  }
+
+  const { data: subscriber, error } = await supabase
+    .from("subscribers")
+    .select("status")
+    .eq("email", userEmail)
+    .single();
+
+  // If there's no subscriber row or status != 'active', redirect them
+  if (!subscriber || subscriber.status !== "active") {
+    redirect("/signup");
+  }
+
+  // Otherwise, user is subscribed => show the children
   return <>{children}</>;
 }
