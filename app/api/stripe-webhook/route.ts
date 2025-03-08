@@ -86,6 +86,8 @@ export async function POST(request: Request) {
           // Note: This is a webhook endpoint, so we don't actually
           // need to set cookies in the response. This is here for
           // API consistency.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          cookiesToSet; // Acknowledge parameter to satisfy linter
         },
       },
     }

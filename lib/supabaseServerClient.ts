@@ -22,6 +22,8 @@ export async function createServerClientSupabase() {
           // In server components, we typically don't need to set cookies
           // as this is handled by the middleware or in API routes where
           // we have access to the response object
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          cookiesToSet; // Acknowledge parameter to satisfy linter
         },
       },
     }

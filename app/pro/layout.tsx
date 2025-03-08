@@ -23,6 +23,8 @@ export default async function ProLayout({
         setAll(cookiesToSet) {
           // In server components, we typically don't need to set cookies
           // because that's handled by the middleware
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          cookiesToSet; // Acknowledge parameter to satisfy linter
         },
       },
     }
