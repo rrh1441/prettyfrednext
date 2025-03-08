@@ -1,5 +1,8 @@
 "use client";
 
+// Force this page to be fully dynamic, so useSearchParams() won't trigger a build error
+export const dynamic = "force-dynamic";
+
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -14,7 +17,7 @@ import { AuthModal } from "@/components/auth/auth-modal";
 
 /** 
  * Utility: Convert FRED rows to { date, value } arrays.
- * Keeps `null` for missing data, preserving gaps.
+ * Keeps `null` for missing data.
  */
 function transformIndicatorData(rows: FredRow[] | undefined) {
   if (!rows || rows.length === 0) {
@@ -227,7 +230,6 @@ export default function HomePage() {
               );
             }
 
-            // Provide short subtitles
             let sub = "";
             switch (id) {
               case "UNRATE":
