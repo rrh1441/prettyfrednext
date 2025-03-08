@@ -21,13 +21,8 @@ export default async function ProLayout({
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // no-op
-          }
+          // In server components, we typically don't need to set cookies
+          // because that's handled by the middleware
         },
       },
     }

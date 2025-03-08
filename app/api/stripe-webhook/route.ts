@@ -83,13 +83,9 @@ export async function POST(request: Request) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // no-op if SSR
-          }
+          // Note: This is a webhook endpoint, so we don't actually
+          // need to set cookies in the response. This is here for
+          // API consistency.
         },
       },
     }

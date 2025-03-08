@@ -19,13 +19,9 @@ export async function createServerClientSupabase() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          } catch {
-            // No-op in SSR or if setAll is not needed
-          }
+          // In server components, we typically don't need to set cookies
+          // as this is handled by the middleware or in API routes where
+          // we have access to the response object
         },
       },
     }
