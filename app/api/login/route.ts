@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function POST(req: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request: req });
+  // Create a new response to properly handle cookies
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,13 +18,8 @@ export async function POST(req: NextRequest) {
           return req.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          // Mirror any changes to the supabaseResponse
-          cookiesToSet.forEach(({ name, value }) => {
-            req.cookies.set(name, value);
-          });
-          supabaseResponse = NextResponse.next({ request: req });
-          cookiesToSet.forEach(({ name, value }) => {
-            supabaseResponse.cookies.set(name, value);
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
           });
         },
       },
@@ -45,16 +45,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Return success with the cookies set in the response
     const body = JSON.stringify({ user: data?.user });
-    // Return success, plus supabaseResponse’s cookies
-    const final = new NextResponse(body, {
+    return new NextResponse(body, {
       status: 200,
-      headers: supabaseResponse.headers,
+      headers: response.headers,
     });
-    supabaseResponse.cookies.getAll().forEach((c) => {
-      final.cookies.set(c.name, c.value);
-    });
-    return final;
   } catch (err) {
     return new NextResponse(
       JSON.stringify({ error: String(err) }),

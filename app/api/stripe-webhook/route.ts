@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   // 6) Build Supabase server client
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -209,7 +209,7 @@ export async function POST(request: Request) {
         // Parse name from metadata
         const name = sub.metadata?.name || null;
 
-        // The plan might come from the first item’s price
+        // The plan might come from the first item's price
         let plan = null;
         const item = sub.items?.data[0];
         if (item?.price?.id) {

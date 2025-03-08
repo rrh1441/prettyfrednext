@@ -11,7 +11,7 @@ export default async function ProLayout({
   children: ReactNode;
 }) {
   // 1) Create the cookie store & Supabase server client
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -61,6 +61,6 @@ export default async function ProLayout({
     redirect("/?auth=signup");
   }
 
-  // 4) Otherwise they’re active => let them see /pro
+  // 4) Otherwise they're active => let them see /pro
   return <>{children}</>;
 }
