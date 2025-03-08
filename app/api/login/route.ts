@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 export async function POST(req: NextRequest) {
   // Create a new response to properly handle cookies
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: req.headers,
     },
