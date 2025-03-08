@@ -129,11 +129,10 @@ export default function SignupForm() {
   // Render a “paywall-like” sign-up experience
   return (
     <div className="h-screen w-full overflow-y-auto bg-white px-4 py-8 flex items-center justify-center">
-      <div className="w-full max-w-md border border-gray-200 shadow-lg rounded-md p-6">
+      <div className="w-full max-w-lg border border-gray-200 shadow-lg rounded-md p-6">
         {/* Heading */}
         <div className="text-center mb-6">
-          {/* Remove "You’ve reached your free limit" */}
-          <h1 className="text-2xl font-bold">Unlock all PrettyFRED Pro features</h1>
+          <h1 className="text-2xl font-bold">Unlock PrettyFRED Pro</h1>
         </div>
 
         {/* Plan toggle */}
@@ -168,7 +167,6 @@ export default function SignupForm() {
               {plan === "monthly" ? "/month" : "/year"}
             </span>
           </div>
-          {/* Remove cappuccino line & show only annual text if needed */}
           {plan === "annual" && (
             <p className="text-sm text-gray-600">Save more when paying annually</p>
           )}
