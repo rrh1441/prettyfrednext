@@ -1,4 +1,5 @@
 /* FILE: app/pro/layout.tsx */
+
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
@@ -11,15 +12,13 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // For a standard server component, we might not have direct NextRequest here.
-        // Usually the supabase auth state is refreshed in middleware, so we can just do empty arrays:
         getAll() {
-          // We do not have direct access to request cookies in a server component
           console.log("[ProLayout] getAll called => returning empty array");
           return [];
         },
-        setAll(cookiesToSet) {
-          // Typically no-op in a layout: we rely on middleware
+        // Change the parameter name to `_cookiesToSet`
+        // so ESLint won't complain about “unused” variables
+        setAll(_cookiesToSet) {
           console.log("[ProLayout] setAll called => ignoring (SSR layout).");
         },
       },
@@ -49,7 +48,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     redirect("/?auth=signup");
   }
 
-  // Now check if they have "active" subscription
+  // Check if they have an active subscription
   const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
