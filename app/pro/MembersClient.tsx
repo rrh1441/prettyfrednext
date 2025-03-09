@@ -43,7 +43,7 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   const [showAllSeriesModal, setShowAllSeriesModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
 
-  // Export references
+  // Export references (for PNG/JPG capturing)
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Pagination
@@ -202,7 +202,57 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   }
 
   // -----------------------------
-  // 8) RENDER
+  // 8) PAGINATION UI COMPONENT
+  // -----------------------------
+  /**
+   * For convenience, we can define a small helper function
+   * to render the page selection bar. We'll call it above and below
+   * the chart list. 
+   */
+  const renderPageSelectionBar = () => (
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <Button
+        variant="outline"
+        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+        disabled={currentPage === 1}
+      >
+        Previous Page
+      </Button>
+
+      {/* Page selection drop-down */}
+      <label className="text-sm" htmlFor="pageSelect">
+        Go to page:
+      </label>
+      <select
+        id="pageSelect"
+        value={currentPage}
+        onChange={(e) => setCurrentPage(Number(e.target.value))}
+        className="border rounded px-2 py-1 text-sm"
+      >
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+          <option key={pageNum} value={pageNum}>
+            {pageNum}
+          </option>
+        ))}
+      </select>
+
+      <Button
+        variant="outline"
+        onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+        disabled={currentPage === totalPages || totalPages === 0}
+      >
+        Next Page
+      </Button>
+
+      {/* "Page X of Y" */}
+      <span className="text-sm ml-2">
+        Page {currentPage} of {totalPages || 1}
+      </span>
+    </div>
+  );
+
+  // -----------------------------
+  // 9) RENDER
   // -----------------------------
   return (
     <div className="p-4">
@@ -231,48 +281,13 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
         </div>
       ) : (
         <>
-          {/* PAGINATION CONTROLS */}
-          <div className="flex flex-wrap items-center gap-2 mb-4">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous Page
-            </Button>
+          {/* 
+            RENDER PAGE SELECTION BAR (TOP)
+            This calls our helper function above the chart list
+          */}
+          {totalItems > 0 && renderPageSelectionBar()}
 
-            {/* Page selection drop-down */}
-            <label className="text-sm" htmlFor="pageSelect">
-              Go to page:
-            </label>
-            <select
-              id="pageSelect"
-              value={currentPage}
-              onChange={(e) => setCurrentPage(Number(e.target.value))}
-              className="border rounded px-2 py-1 text-sm"
-            >
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <option key={pageNum} value={pageNum}>
-                  {pageNum}
-                </option>
-              ))}
-            </select>
-
-            <Button
-              variant="outline"
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages || totalPages === 0}
-            >
-              Next Page
-            </Button>
-
-            {/* "Page X of Y" */}
-            <span className="text-sm ml-2">
-              Page {currentPage} of {totalPages || 1}
-            </span>
-          </div>
-
-          {/* MAIN LIST OF CHARTS */}
+          {/* If no charts found, show a simple message */}
           {displayedCharts.length === 0 ? (
             <div className="text-center my-4 text-gray-700">
               No charts found.
@@ -319,6 +334,12 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
               ))}
             </div>
           )}
+
+          {/* 
+            RENDER PAGE SELECTION BAR (BOTTOM)
+            We call the same helper function again below the chart list
+          */}
+          {totalItems > 0 && renderPageSelectionBar()}
         </>
       )}
 
