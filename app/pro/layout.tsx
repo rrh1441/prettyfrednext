@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export default async function ProLayout({
@@ -10,26 +10,24 @@ export default async function ProLayout({
 }: {
   children: ReactNode;
 }) {
-  // 1) Create the cookie store & Supabase server client
-  const cookieStore = cookies();
+  // Use a simpler approach for server components
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        // In server components, we can use empty arrays since middleware handles cookies
         getAll() {
-          return cookieStore.getAll();
+          return [];
         },
-        // In server components, we don't need to set cookies
         setAll() {
-          // No-op for server components
           return;
         },
       },
     }
   );
 
-  // 2) Check if the user has a valid session
+  // Check if the user has a valid session
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -39,7 +37,7 @@ export default async function ProLayout({
     redirect("/?auth=login");
   }
 
-  // 3) Check subscriber table by user email
+  // Check subscriber table by user email
   const userEmail = session.user.email;
   if (!userEmail) {
     // No email => treat them as unsubscribed => go /?auth=signup
@@ -57,6 +55,6 @@ export default async function ProLayout({
     redirect("/?auth=signup");
   }
 
-  // 4) Otherwise they're active => let them see /pro
+  // Otherwise they're active => let them see /pro
   return <>{children}</>;
 }

@@ -72,19 +72,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: "ignored", event: event.type });
   }
 
-  // 6) Build Supabase server client
+  // 6) Build Supabase server client - modified for Webhook
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        // Using empty arrays for webhooks as we don't need actual cookies here
         getAll() {
-          return cookieStore.getAll();
+          return [];
         },
-        // In webhooks we don't need to set cookies
         setAll() {
-          // No-op for webhooks
           return;
         },
       },

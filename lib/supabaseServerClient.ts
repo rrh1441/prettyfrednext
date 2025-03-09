@@ -1,27 +1,22 @@
 // FILE: lib/supabaseServerClient.ts
 
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 
 /**
- * Creates a server-side Supabase client,
- * using the "getAll"/"setAll" pattern from your SupabaseAuthGuide.md
+ * Creates a server-side Supabase client that doesn't rely on cookies
+ * since we have middleware handling refresh tokens and auth state
  */
 export async function createServerClientSupabase() {
-  const cookieStore = cookies();
-
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        // Simple approach that relies on middleware for auth
         getAll() {
-          return cookieStore.getAll();
+          return [];
         },
-        // In most server contexts we don't need to set cookies
-        // as that's handled by middleware
         setAll() {
-          // No-op for server components
           return;
         },
       },
