@@ -2,32 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function POST(req: NextRequest) {
-  // Create a new response to properly handle cookies
-  const response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-
   try {
     const { email, password } = await req.json();
+
+    // Create the response first - this is the one we'll return
+    const response = NextResponse.json(
+      { success: true },
+      { status: 200 }
+    );
+
+    // Create Supabase client with proper cookie handling
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return req.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
 
     // Server sign-in: store tokens in cookies
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -36,28 +36,25 @@ export async function POST(req: NextRequest) {
     });
 
     if (error) {
-      return new NextResponse(
-        JSON.stringify({ error: error.message }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
       );
     }
 
-    // Return success with the cookies set in the response
-    const body = JSON.stringify({ user: data?.user });
-    return new NextResponse(body, {
-      status: 200,
-      headers: response.headers,
-    });
-  } catch (err) {
-    return new NextResponse(
-      JSON.stringify({ error: String(err) }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
+    // Update response data with user info
+    return NextResponse.json(
+      { user: data?.user },
+      { 
+        status: 200,
+        headers: response.headers // Use headers from response with cookies
       }
+    );
+  } catch (err) {
+    console.error("Login error:", err);
+    return NextResponse.json(
+      { error: String(err) },
+      { status: 400 }
     );
   }
 }
