@@ -42,7 +42,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     redirect("/?auth=login");
   }
 
-  // If you only need to check user is logged in, stop here.
+  // If you only need to che ck user is logged in, stop here.
   // If you also need a subscription check, do so:
   const userEmail = session.user?.email;
   if (!userEmail) {
