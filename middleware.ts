@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  // Create a response object
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
+  // Create Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -25,10 +27,13 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired - this is the critical part for
-  // maintaining authentication state across your application
+  // Refresh session - this is critical for maintaining auth state
   await supabase.auth.getSession();
 
+  // IMPORTANT: Log URL for debugging
+  console.log(`Middleware processing: ${request.nextUrl.pathname}`);
+  
+  // Return the response with auth cookies
   return response;
 }
 
@@ -43,4 +48,4 @@ export const config = {
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-};
+}

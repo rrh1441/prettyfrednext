@@ -66,6 +66,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           email: data.email,
           password: data.password,
         }),
+        // Important: Include credentials to ensure cookies are saved
+        credentials: "include",
       });
 
       if (!response.ok) {
