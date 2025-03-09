@@ -1,4 +1,5 @@
 /* FILE: app/api/create-checkout-session/route.ts */
+
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
@@ -23,7 +24,10 @@ export async function POST(request: Request) {
     // 2) Read your Stripe secret key from environment
     const stripeSecret = process.env.STRIPE_TEST_SECRET_KEY;
     if (!stripeSecret) {
-      return NextResponse.json({ error: "Stripe key not configured" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Stripe key not configured" },
+        { status: 500 },
+      );
     }
 
     // 3) Initialize Stripe
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
     const planLabel = mapPriceIdToPlan(chosenPriceId);
 
     // 5) Create a subscription Checkout Session
-    // Store plan in `metadata` so we can read it later in the webhook
+    //    IMPORTANT: enable the 'allow_promotion_codes' option
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -55,12 +59,16 @@ export async function POST(request: Request) {
       metadata: {
         plan: planLabel,
       },
+      allow_promotion_codes: true,  // <--- This is the crucial part
     });
 
     // 6) Return the Checkout Session URL
     return NextResponse.json({ url: session.url });
   } catch (error) {
     console.error("Error creating checkout session:", error);
-    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 },
+    );
   }
 }

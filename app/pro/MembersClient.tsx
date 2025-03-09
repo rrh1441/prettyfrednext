@@ -1,5 +1,3 @@
-/* FILE: app/pro/MembersClient.tsx */
-
 "use client";
 
 import React, { useState, useRef, useEffect, FormEvent } from "react";
@@ -10,7 +8,7 @@ import Card from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-/** Each row in fred_data table. */
+/** Each row in the "fred_data" table. */
 interface FredRow {
   date: string;
   value: number | null;
@@ -29,34 +27,35 @@ interface SeriesMeta {
   description: string;
 }
 
-/** Props for your MembersClient component.
- *  Removed 'initialSeries' and 'remainingSeriesMetadata' since they were unused.
- */
+/** The only prop: allSeriesList (the entire array of {series_id, description}). */
 interface MembersClientProps {
-  /** Full list of series metadata. */
   allSeriesList: SeriesMeta[];
 }
 
 export default function MembersClient({ allSeriesList }: MembersClientProps) {
-  // 1) States
-  const [allSeries, setAllSeries] = useState<SeriesData[]>([]); // All chart data loaded from supabase
+  // -----------------------------
+  // 1) STATE & REFS
+  // -----------------------------
+  const [allSeries, setAllSeries] = useState<SeriesData[]>([]); // all chart data
+  const [loading, setLoading] = useState(false); // whether we’re fetching
   const [pinnedIDs, setPinnedIDs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAllSeriesModal, setShowAllSeriesModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
 
-  // 2) Chart refs for exporting images
+  // Export references
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // 3) Pagination states
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
   // -----------------------------
-  //   FETCH ALL CHART DATA
+  // 2) FETCH ALL CHART DATA (once)
   // -----------------------------
   useEffect(() => {
     async function fetchAll() {
+      setLoading(true);
       try {
         const results: SeriesData[] = [];
         for (const meta of allSeriesList) {
@@ -83,15 +82,15 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
           });
         }
         setAllSeries(results);
-      } catch (err) {
-        console.error("Error fetching all series data:", err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchAll();
   }, [allSeriesList]);
 
   // -----------------------------
-  //   PIN / UNPIN LOGIC
+  // 3) PIN / UNPIN LOGIC
   // -----------------------------
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
@@ -102,11 +101,10 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   }
 
   // -----------------------------
-  //   SEARCH
+  // 4) SEARCH FILTER
   // -----------------------------
   const normalizedSearch = searchTerm.trim().toLowerCase();
   let filtered = allSeries;
-
   if (normalizedSearch) {
     filtered = allSeries.filter(
       (s) =>
@@ -115,19 +113,18 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
     );
   }
 
-  // -----------------------------
-  //   PINNED FIRST
-  // -----------------------------
+  // Split pinned vs. unpinned
   const pinned = filtered.filter((s) => pinnedIDs.includes(s.series_id));
   const unpinned = filtered.filter((s) => !pinnedIDs.includes(s.series_id));
   const combined = [...pinned, ...unpinned];
 
   // -----------------------------
-  //   PAGINATION
+  // 5) PAGINATION SLICING
   // -----------------------------
   const totalItems = combined.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
+  // If search changes, or totalPages changes, clamp currentPage
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
@@ -139,7 +136,7 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   const displayedCharts = combined.slice(startIndex, endIndex);
 
   // -----------------------------
-  //   EXPORT HANDLERS
+  // 6) EXPORT HANDLERS
   // -----------------------------
   async function handleExportPng(seriesId: string) {
     const node = chartRefs.current[seriesId];
@@ -179,7 +176,7 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   }
 
   // -----------------------------
-  //   REQUEST FORM
+  // 7) REQUEST FORM SUBMIT
   // -----------------------------
   async function handleRequestSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -205,7 +202,7 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
   }
 
   // -----------------------------
-  //   RENDER
+  // 8) RENDER
   // -----------------------------
   return (
     <div className="p-4">
@@ -227,90 +224,102 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
         </Button>
       </div>
 
-      {/* PAGINATION CONTROLS */}
-      <div className="flex items-center mb-4 gap-2">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Previous Page
-        </Button>
-        <span className="text-sm">
-          Page {currentPage} of {totalPages || 1}
-        </span>
-        <Button
-          variant="outline"
-          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-          disabled={currentPage === totalPages || totalPages === 0}
-        >
-          Next Page
-        </Button>
-      </div>
-
-      {/* CHARTS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayedCharts.map((series) => (
-          <Card key={series.series_id} className="p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold">
-                {series.series_id} - {series.description}
-              </h3>
-              <Button variant="outline" onClick={() => togglePin(series.series_id)}>
-                {pinnedIDs.includes(series.series_id) ? "Unpin" : "Pin"}
-              </Button>
-            </div>
-
-            <div
-              ref={(el) => {
-                chartRefs.current[series.series_id] = el;
-              }}
-            >
-              <EconomicChart
-                title={series.description}
-                subtitle={series.series_id}
-                data={series.data}
-                color="#7E69AB"
-                isEditable
-              />
-            </div>
-
-            <div className="flex gap-2 mt-2">
-              <Button variant="outline" onClick={() => handleExportPng(series.series_id)}>
-                PNG
-              </Button>
-              <Button variant="outline" onClick={() => handleExportJpg(series.series_id)}>
-                JPG
-              </Button>
-              <Button variant="outline" onClick={() => handleExportCsv(series)}>
-                CSV
-              </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* SECOND PAGINATION BLOCK (OPTIONAL) */}
-      {displayedCharts.length > 0 && (
-        <div className="flex items-center mt-4 gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Previous Page
-          </Button>
-          <span className="text-sm">
-            Page {currentPage} of {totalPages || 1}
-          </span>
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages || totalPages === 0}
-          >
-            Next Page
-          </Button>
+      {/* If still fetching, show a "Loading..." message */}
+      {loading ? (
+        <div className="text-center my-4">
+          <p className="text-lg font-medium">Loading data...</p>
         </div>
+      ) : (
+        <>
+          {/* PAGINATION CONTROLS */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous Page
+            </Button>
+
+            {/* Page selection drop-down */}
+            <label className="text-sm" htmlFor="pageSelect">
+              Go to page:
+            </label>
+            <select
+              id="pageSelect"
+              value={currentPage}
+              onChange={(e) => setCurrentPage(Number(e.target.value))}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <option key={pageNum} value={pageNum}>
+                  {pageNum}
+                </option>
+              ))}
+            </select>
+
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages || totalPages === 0}
+            >
+              Next Page
+            </Button>
+
+            {/* "Page X of Y" */}
+            <span className="text-sm ml-2">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+          </div>
+
+          {/* MAIN LIST OF CHARTS */}
+          {displayedCharts.length === 0 ? (
+            <div className="text-center my-4 text-gray-700">
+              No charts found.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {displayedCharts.map((series) => (
+                <Card key={series.series_id} className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-bold">
+                      {series.series_id} - {series.description}
+                    </h3>
+                    <Button variant="outline" onClick={() => togglePin(series.series_id)}>
+                      {pinnedIDs.includes(series.series_id) ? "Unpin" : "Pin"}
+                    </Button>
+                  </div>
+
+                  <div
+                    ref={(el) => {
+                      chartRefs.current[series.series_id] = el;
+                    }}
+                  >
+                    <EconomicChart
+                      title={series.description}
+                      subtitle={series.series_id}
+                      data={series.data}
+                      color="#7E69AB"
+                      isEditable
+                    />
+                  </div>
+
+                  <div className="flex gap-2 mt-2">
+                    <Button variant="outline" onClick={() => handleExportPng(series.series_id)}>
+                      PNG
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExportJpg(series.series_id)}>
+                      JPG
+                    </Button>
+                    <Button variant="outline" onClick={() => handleExportCsv(series)}>
+                      CSV
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* SHOW ALL SERIES MODAL */}
@@ -336,7 +345,7 @@ export default function MembersClient({ allSeriesList }: MembersClientProps) {
         </div>
       )}
 
-      {/* REQUEST FORM MODAL */}
+      {/* REQUEST A DATA SERIES MODAL */}
       {showRequestForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded p-4 w-full max-w-md relative">
