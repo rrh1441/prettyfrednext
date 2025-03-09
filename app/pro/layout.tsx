@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 export default async function ProLayout({ children }: { children: ReactNode }) {
   console.log("[ProLayout] Checking user session on server...");
 
-  // Use next/headers to access cookies from the incoming request
+  // Use next/headers to access cookies from the incoming request.
   const cookieStore = cookies();
 
   const supabase = createServerClient(
@@ -16,12 +16,11 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     {
       cookies: {
         getAll() {
-          // Retrieve all cookies from the incoming request
+          // Retrieve all cookies from the incoming request.
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          // Attempt to set cookies on the response. In Server Components, this may fail,
-          // which is acceptable if middleware is refreshing sessions.
+          // Attempt to set cookies on the response. In Server Components, this may fail.
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
               cookieStore.set(name, value, options);
@@ -35,14 +34,11 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
   );
 
   // 1) Check user session
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error) {
-    console.error("[ProLayout] supabase.auth.getSession error:", error.message);
+  const sessionResult = await supabase.auth.getSession();
+  if (sessionResult.error) {
+    console.error("[ProLayout] supabase.auth.getSession error:", sessionResult.error.message);
   }
+  const session = sessionResult.data.session;
   console.log("[ProLayout] session =>", session);
 
   if (!session) {
