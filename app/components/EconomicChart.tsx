@@ -435,7 +435,7 @@ export default function EconomicChart({
         )}
       </div>
 
-      {/* Bottom text row: left "Visualization by PrettyFRED", right "Source: FRED" */}
+      {/* Bottom text row: left  "Visualization by PrettyFRED", right "Source: FRED" */}
       <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
         <span>Visualization by PrettyFRED</span>
         <span>Source: Federal Reserve Economic Data (FRED)</span>
