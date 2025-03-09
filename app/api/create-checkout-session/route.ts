@@ -5,9 +5,9 @@ import Stripe from "stripe";
 /** Maps your known Stripe price IDs to "monthly" or "annual" plan labels. */
 function mapPriceIdToPlan(priceId: string): string {
   switch (priceId) {
-    case "price_1QwxGFKSaqiJUYkjaGZq3fSe":
+    case "price_1R0pA5KSaqiJUYkjpQ9GTUur":
       return "monthly";
-    case "price_1QwxH0KSaqiJUYkj23gzUY4Q":
+    case "price_1R0p9kKSaqiJUYkjWcBZE8nV":
       return "annual";
     default:
       return "unknown";
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { plan } = body as { plan: string };
 
-    // 2) Read your Stripe test secret key from environment
+    // 2) Read your Stripe secret key from environment
     const stripeSecret = process.env.STRIPE_TEST_SECRET_KEY;
     if (!stripeSecret) {
       return NextResponse.json({ error: "Stripe key not configured" }, { status: 500 });
@@ -31,9 +31,9 @@ export async function POST(request: Request) {
       apiVersion: "2025-02-24.acacia", // your chosen version
     });
 
-    // 4) Hardcode or map to actual price IDs
-    const priceIdMonthly = "price_1QwxGFKSaqiJUYkjaGZq3fSe";
-    const priceIdAnnual = "price_1QwxH0KSaqiJUYkj23gzUY4Q";
+    // 4) Use your live-mode price IDs
+    const priceIdMonthly = "price_1R0pA5KSaqiJUYkjpQ9GTUur";
+    const priceIdAnnual = "price_1R0p9kKSaqiJUYkjWcBZE8nV";
     const chosenPriceId = plan === "annual" ? priceIdAnnual : priceIdMonthly;
 
     // Optionally derive the plan label from the chosen price ID
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
       ],
       success_url: "https://prettyfred.com/pro?success=true",
       cancel_url: "https://prettyfred.com/pro?canceled=true",
-      // If you want name/email in your webhooks, you can also pass it as metadata
       metadata: {
         plan: planLabel,
       },
