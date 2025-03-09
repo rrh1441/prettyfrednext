@@ -2,7 +2,6 @@
 
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export default async function ProLayout({

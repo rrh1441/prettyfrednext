@@ -73,7 +73,6 @@ export async function POST(request: Request) {
   }
 
   // 6) Build Supabase server client - modified for Webhook
-  const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
