@@ -1,5 +1,4 @@
 /* FILE: app/pro/layout.tsx */
-
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
@@ -16,16 +15,18 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
           console.log("[ProLayout] getAll called => returning empty array");
           return [];
         },
-        // Change the parameter name to `_cookiesToSet`
-        // so ESLint won't complain about “unused” variables
-        setAll(_cookiesToSet) {
-          console.log("[ProLayout] setAll called => ignoring (SSR layout).");
+        // We must *use* the parameter so it doesn't trigger a lint error
+        setAll(cookiesToSet) {
+          // Log how many cookies we would theoretically set (just to avoid lint errors)
+          console.log("[ProLayout] setAll called => ignoring (SSR layout) but param used:", {
+            count: cookiesToSet.length,
+          });
         },
       },
     }
   );
 
-  // See if the user has a valid session
+  // Check if there's a current session
   const {
     data: { session },
     error,
@@ -41,14 +42,14 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     redirect("/?auth=login");
   }
 
-  // Check if we have a user email. If not, redirect
+  // Check if user has an email
   const userEmail = session.user?.email;
   if (!userEmail) {
     console.log("[ProLayout] session.user has no email. Redirecting to /?auth=signup");
     redirect("/?auth=signup");
   }
 
-  // Check if they have an active subscription
+  // Check if they're active in subscribers
   const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
