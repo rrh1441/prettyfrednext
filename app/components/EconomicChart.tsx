@@ -395,19 +395,13 @@ export default function EconomicChart({
             }}
             axisBottom={{
               tickSize: 5,
-              tickPadding: 15,
+              tickPadding: 15, // increased padding
               tickRotation: -30,
               tickValues,
-              legend: "Date",
-              legendOffset: 45,
-              legendPosition: "middle",
             }}
             axisLeft={{
               tickSize: 5,
               tickPadding: 5,
-              legend: "Value",
-              legendOffset: -60,
-              legendPosition: "middle",
               format: formatYAxis,
             }}
             curve="linear"
