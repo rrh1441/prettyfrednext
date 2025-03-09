@@ -24,7 +24,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
               cookieStore.set(name, value, options);
-            } catch (error) {
+            } catch (_error) {
               // Ignore errors here (e.g. if called from a Server Component)
             }
           });
@@ -36,7 +36,10 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
   // 1) Check user session
   const sessionResult = await supabase.auth.getSession();
   if (sessionResult.error) {
-    console.error("[ProLayout] supabase.auth.getSession error:", sessionResult.error.message);
+    console.error(
+      "[ProLayout] supabase.auth.getSession error:",
+      sessionResult.error.message
+    );
   }
   const session = sessionResult.data.session;
   console.log("[ProLayout] session =>", session);
@@ -48,7 +51,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
 
   // 2) Prepare userEmail
   let userEmail = session.user?.email ?? "";
-  userEmail = userEmail.trim().toLowerCase(); // Normalize email
+  userEmail = userEmail.trim().toLowerCase();
   if (!userEmail) {
     console.log("[ProLayout] No userEmail => redirect /?auth=signup");
     redirect("/?auth=signup");
