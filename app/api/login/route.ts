@@ -1,46 +1,38 @@
-/* FILE: app/api/login/route.ts */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-export async function POST(req: NextRequest) {
-  console.log("[login/route.ts] POST endpoint called.");
+export async function POST(request: NextRequest) {
+  console.log("[login/route.ts] POST /api/login called.");
 
   try {
-    // Parse login credentials from request body
-    const { email, password } = await req.json();
-    console.log("[login/route.ts] Credentials received:", { email, passwordExists: Boolean(password) });
+    const { email, password } = await request.json();
+    console.log("[login/route.ts] Credentials =>", { email, passwordExists: Boolean(password) });
 
-    // Create the NextResponse object
+    // We'll return a JSON response with status 200 by default
     const response = NextResponse.json({ success: true }, { status: 200 });
 
-    // Create a Supabase server client that sets cookies on `response`
+    // Create the Supabase server client, hooking into cookies
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           getAll() {
-            const incoming = req.cookies.getAll();
-            console.log("[login/route.ts] getAll cookies =>", incoming);
+            const incoming = request.cookies.getAll();
+            console.log("[login/route.ts] getAll =>", incoming);
             return incoming;
           },
           setAll(cookiesToSet) {
-            console.log("[login/route.ts] setAll cookies =>", cookiesToSet);
-
+            console.log("[login/route.ts] setAll =>", cookiesToSet);
             cookiesToSet.forEach(({ name, value, options }) => {
-              // Remove expiration so it becomes a session cookie
+              // Remove any expiration so they're ephemeral session cookies
               delete options.expires;
               delete options.maxAge;
 
-              // If testing locally over HTTP, you might not want secure
-              // options.secure = false; // <— Only if debugging locally
+              // If your site is HTTPS, keep secure: true. If testing locally over http, set secure = false.
+              // options.secure = false;
 
-              console.log("[login/route.ts] Setting cookie:", {
-                name,
-                value,
-                finalOptions: options,
-              });
-
+              console.log("[login/route.ts] Setting cookie:", { name, value, finalOptions: options });
               response.cookies.set(name, value, options);
             });
           },
@@ -48,31 +40,26 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    // Actually attempt to sign the user in
+    // Attempt to sign in
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
     if (error) {
       console.error("[login/route.ts] Error signing in:", error.message);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-
     if (!data.user) {
-      console.log("[login/route.ts] No user returned from supabase.auth.signInWithPassword.");
-      return NextResponse.json({ error: "No user returned from sign-in" }, { status: 400 });
+      console.log("[login/route.ts] No user returned from signInWithPassword.");
+      return NextResponse.json({ error: "No user returned" }, { status: 400 });
     }
 
-    console.log("[login/route.ts] Sign-in success. Supabase user:", data.user);
+    console.log("[login/route.ts] Sign-in success. User =>", data.user);
 
-    // Return a JSON response with the user data, and crucially, pass along the cookies
+    // Return JSON with user data, carrying over cookies in the response
     return NextResponse.json(
       { user: data.user },
-      {
-        status: 200,
-        headers: response.headers, // copy over the set-cookie headers
-      }
+      { status: 200, headers: response.headers }
     );
   } catch (err) {
     console.error("[login/route.ts] Unexpected error:", err);

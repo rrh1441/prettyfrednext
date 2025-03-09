@@ -1,32 +1,31 @@
-/* FILE: app/pro/layout.tsx */
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
 export default async function ProLayout({ children }: { children: ReactNode }) {
-  console.log("[ProLayout] Checking user session on server side...");
+  console.log("[ProLayout] Checking user session on server...");
 
+  // Create a server client. Usually no cookies are needed here
+  // because the middleware handles it, but we must implement them anyway.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          console.log("[ProLayout] getAll called => returning empty array");
+          // Usually returns empty or relies on middleware
+          console.log("[ProLayout] getAll => returning [] (no-op)");
           return [];
         },
-        // We must *use* the parameter so it doesn't trigger a lint error
         setAll(cookiesToSet) {
-          // Log how many cookies we would theoretically set (just to avoid lint errors)
-          console.log("[ProLayout] setAll called => ignoring (SSR layout) but param used:", {
-            count: cookiesToSet.length,
-          });
+          // We'll just log them, no lint errors if we use cookiesToSet
+          console.log("[ProLayout] setAll => ignoring, but param used =>", cookiesToSet.length);
         },
       },
     }
   );
 
-  // Check if there's a current session
+  // Now let's see if user is logged in
   const {
     data: { session },
     error,
@@ -38,18 +37,20 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
   console.log("[ProLayout] session =>", session);
 
   if (!session) {
-    console.log("[ProLayout] No session. Redirecting to /?auth=login");
+    // No session => redirect
+    console.log("[ProLayout] No session found => redirect /?auth=login");
     redirect("/?auth=login");
   }
 
-  // Check if user has an email
+  // If you only need to check user is logged in, stop here.
+  // If you also need a subscription check, do so:
   const userEmail = session.user?.email;
   if (!userEmail) {
-    console.log("[ProLayout] session.user has no email. Redirecting to /?auth=signup");
+    console.log("[ProLayout] No email => redirect /?auth=signup");
     redirect("/?auth=signup");
   }
 
-  // Check if they're active in subscribers
+  // Check if user is "active" in subscriber table
   const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
@@ -57,17 +58,16 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     .single();
 
   if (subError) {
-    console.error("[ProLayout] Error reading subscribers table:", subError.message);
-    console.log("[ProLayout] We'll treat them as unsubscribed => redirect /?auth=signup");
+    console.error("[ProLayout] subscriber fetch error =>", subError.message);
     redirect("/?auth=signup");
   }
 
   if (!subscriber || subscriber.status !== "active") {
-    console.log(`[ProLayout] subscriber missing or not active => ${subscriber?.status}`);
+    console.log(`[ProLayout] Not active => ${subscriber?.status}`);
     redirect("/?auth=signup");
   }
 
-  console.log("[ProLayout] Auth + Subscription checks passed. Rendering children...");
+  console.log("[ProLayout] Auth + subscriber checks => OK. Rendering children...");
 
   return <>{children}</>;
 }

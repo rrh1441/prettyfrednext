@@ -1,18 +1,17 @@
-/* FILE: middleware.ts */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
-  console.log("[middleware] Entering middleware for:", request.nextUrl.pathname);
+  console.log("[middleware] Handling request:", request.nextUrl.pathname);
 
-  // We'll store the NextResponse in a variable so we can mutate cookies
+  // We'll keep a reference to the NextResponse
   let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  // Create a Supabase server client that can refresh sessions
+  // Create the Supabase server client for SSR
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -20,26 +19,21 @@ export async function middleware(request: NextRequest) {
       cookies: {
         getAll() {
           const incoming = request.cookies.getAll();
-          console.log("[middleware] getAll cookies =>", incoming);
+          console.log("[middleware] getAll =>", incoming);
           return incoming;
         },
         setAll(cookiesToSet) {
-          console.log("[middleware] setAll cookies =>", cookiesToSet);
+          console.log("[middleware] setAll =>", cookiesToSet);
 
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Remove expires so it’s truly a session cookie
+            // Remove expiry => ephemeral cookie
             delete options.expires;
             delete options.maxAge;
 
-            // If debugging locally over HTTP:
+            // If local dev with http:
             // options.secure = false;
 
-            console.log("[middleware] Setting cookie on supabaseResponse:", {
-              name,
-              value,
-              finalOptions: options,
-            });
-
+            console.log("[middleware] Setting cookie =>", { name, value, finalOptions: options });
             supabaseResponse.cookies.set(name, value, options);
           });
         },
@@ -47,7 +41,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session: ensures the user session is up to date
+  // Attempt to refresh session
   const {
     data: { session },
     error,
@@ -56,18 +50,15 @@ export async function middleware(request: NextRequest) {
   if (error) {
     console.error("[middleware] getSession error:", error.message);
   } else {
-    console.log("[middleware] getSession => session:", session);
+    console.log("[middleware] session =>", session);
   }
-
-  console.log("[middleware] Completed. Returning supabaseResponse.");
 
   return supabaseResponse;
 }
 
-// Only run middleware for these routes
+// Match everything except static assets
 export const config = {
   matcher: [
-    // anything except _next/static|_next/image|favicon|public assets
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
