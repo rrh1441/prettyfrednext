@@ -1,8 +1,8 @@
-import { Card, CardContent } from "@/components/ui/card"
+"use client";
 
-// Helper component for section formatting
 import React from "react";
 
+// Helper component for section formatting
 interface TermsSectionProps {
   number: number;
   title: string;
@@ -24,15 +24,16 @@ export default function TermsOfServicePage() {
   return (
     <div className="bg-slate-50 min-h-screen py-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Card className="shadow-lg">
-          <CardContent className="p-8">
+        {/* Replace the custom Card with a plain <div> */}
+        <div className="shadow-lg bg-white rounded">
+          {/* Card content area */}
+          <div className="p-8">
             <div className="space-y-8">
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold text-slate-900">Terms of Service</h1>
                 <p className="text-slate-500">
                   <strong>Effective Date:</strong> March 1, 2025
                 </p>
-                {/* Replace custom <Separator> with a standard <hr> to avoid missing import */}
                 <hr className="my-4" />
               </div>
 
@@ -122,8 +123,8 @@ export default function TermsOfServicePage() {
                 </TermsSection>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
