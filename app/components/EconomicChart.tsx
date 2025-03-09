@@ -395,7 +395,7 @@ export default function EconomicChart({
             }}
             axisBottom={{
               tickSize: 5,
-              tickPadding: 5,
+              tickPadding: 15,
               tickRotation: -30,
               tickValues,
               legend: "Date",
