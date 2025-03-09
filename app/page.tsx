@@ -14,8 +14,8 @@ export default function Page() {
       {/* The main home content */}
       <HomeClient />
 
-      {/* Footer links added at the bottom */}
-      <footer className="mt-8 flex justify-center space-x-6">
+      {/* Footer links with bottom spacing */}
+      <footer className="mt-8 mb-8 flex justify-center space-x-6">
         <a href="/privacy-policy" className="underline">
           Privacy Policy
         </a>
