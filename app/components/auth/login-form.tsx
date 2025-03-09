@@ -75,9 +75,12 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         throw new Error(err.error || "Invalid email or password");
       }
 
-      // If success: cookies are now set on the server side
+      // If success: ephemeral cookies are now set on the server side
       onSuccess();
-      window.location.href = "/pro"; // redirect or do whatever is needed
+
+      // Because fetch doesn't automatically navigate,
+      // do a manual client-side redirect to /pro:
+      window.location.href = "/pro";
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

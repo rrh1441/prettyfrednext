@@ -13,13 +13,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // 2) Normal Supabase SSR code below...
-  // (Paste your existing code for session refresh, cookies, etc.)
-
   let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -39,9 +38,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) console.error("[middleware] getSession error:", error.message);
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) {
+    console.error("[middleware] getSession error:", error.message);
+  }
+
   return supabaseResponse;
 }
 
