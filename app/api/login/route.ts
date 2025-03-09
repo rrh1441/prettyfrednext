@@ -3,67 +3,79 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function POST(req: NextRequest) {
-  try {
-    // Parse login credentials
-    const { email, password } = await req.json();
+  console.log("[login/route.ts] POST endpoint called.");
 
-    // Create response FIRST - will be used to set cookies
+  try {
+    // Parse login credentials from request body
+    const { email, password } = await req.json();
+    console.log("[login/route.ts] Credentials received:", { email, passwordExists: Boolean(password) });
+
+    // Create the NextResponse object
     const response = NextResponse.json({ success: true }, { status: 200 });
 
-    // Initialize Supabase client with THIS response
+    // Create a Supabase server client that sets cookies on `response`
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
           getAll() {
-            // Return all cookies from the incoming request
-            return req.cookies.getAll();
+            const incoming = req.cookies.getAll();
+            console.log("[login/route.ts] getAll cookies =>", incoming);
+            return incoming;
           },
           setAll(cookiesToSet) {
+            console.log("[login/route.ts] setAll cookies =>", cookiesToSet);
+
             cookiesToSet.forEach(({ name, value, options }) => {
-              // 1) Remove any expiry so browser treats it as a session cookie
+              // Remove expiration so it becomes a session cookie
               delete options.expires;
               delete options.maxAge;
-              // 2) Set cookies on our response
-              response.cookies.set(name, value, {
-                ...options,
-                // If you want them only over HTTPS:
-                // secure: true,
-                // If you want them strictly same-site:
-                // sameSite: "strict",
+
+              // If testing locally over HTTP, you might not want secure
+              // options.secure = false; // <— Only if debugging locally
+
+              console.log("[login/route.ts] Setting cookie:", {
+                name,
+                value,
+                finalOptions: options,
               });
+
+              response.cookies.set(name, value, options);
             });
           },
         },
       }
     );
 
-    // Perform sign-in, which will set auth cookies on our response
+    // Actually attempt to sign the user in
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    // Handle sign-in errors
     if (error) {
-      console.error("Login error:", error.message);
+      console.error("[login/route.ts] Error signing in:", error.message);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // Log successful login
-    console.log("Login successful for:", email);
-    
-    // Important: Return our response object with the cookies
+    if (!data.user) {
+      console.log("[login/route.ts] No user returned from supabase.auth.signInWithPassword.");
+      return NextResponse.json({ error: "No user returned from sign-in" }, { status: 400 });
+    }
+
+    console.log("[login/route.ts] Sign-in success. Supabase user:", data.user);
+
+    // Return a JSON response with the user data, and crucially, pass along the cookies
     return NextResponse.json(
       { user: data.user },
-      { 
+      {
         status: 200,
-        headers: response.headers, // carry over all cookie headers
+        headers: response.headers, // copy over the set-cookie headers
       }
     );
   } catch (err) {
-    console.error("Unexpected login error:", err);
+    console.error("[login/route.ts] Unexpected error:", err);
     return NextResponse.json({ error: String(err) }, { status: 400 });
   }
 }

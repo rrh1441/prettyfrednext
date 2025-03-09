@@ -1,59 +1,73 @@
 /* FILE: app/pro/layout.tsx */
-
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 
-export default async function ProLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  // Use a simpler approach for server components
+export default async function ProLayout({ children }: { children: ReactNode }) {
+  console.log("[ProLayout] Checking user session on server side...");
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // In server components, we can use empty arrays since middleware handles cookies
+        // For a standard server component, we might not have direct NextRequest here.
+        // Usually the supabase auth state is refreshed in middleware, so we can just do empty arrays:
         getAll() {
+          // We do not have direct access to request cookies in a server component
+          console.log("[ProLayout] getAll called => returning empty array");
           return [];
         },
-        setAll() {
-          return;
+        setAll(cookiesToSet) {
+          // Typically no-op in a layout: we rely on middleware
+          console.log("[ProLayout] setAll called => ignoring (SSR layout).");
         },
       },
     }
   );
 
-  // Check if the user has a valid session
+  // See if the user has a valid session
   const {
     data: { session },
+    error,
   } = await supabase.auth.getSession();
 
-  // If not logged in, redirect => /?auth=login
+  if (error) {
+    console.error("[ProLayout] supabase.auth.getSession error:", error.message);
+  }
+  console.log("[ProLayout] session =>", session);
+
   if (!session) {
+    console.log("[ProLayout] No session. Redirecting to /?auth=login");
     redirect("/?auth=login");
   }
 
-  // Check subscriber table by user email
-  const userEmail = session.user.email;
+  // Check if we have a user email. If not, redirect
+  const userEmail = session.user?.email;
   if (!userEmail) {
-    // No email => treat them as unsubscribed => go /?auth=signup
+    console.log("[ProLayout] session.user has no email. Redirecting to /?auth=signup");
     redirect("/?auth=signup");
   }
 
-  const { data: subscriber } = await supabase
+  // Now check if they have "active" subscription
+  const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
     .eq("email", userEmail)
     .single();
 
-  // If no row or status != active => /?auth=signup
-  if (!subscriber || subscriber.status !== "active") {
+  if (subError) {
+    console.error("[ProLayout] Error reading subscribers table:", subError.message);
+    console.log("[ProLayout] We'll treat them as unsubscribed => redirect /?auth=signup");
     redirect("/?auth=signup");
   }
 
-  // Otherwise they're active => let them see /pro
+  if (!subscriber || subscriber.status !== "active") {
+    console.log(`[ProLayout] subscriber missing or not active => ${subscriber?.status}`);
+    redirect("/?auth=signup");
+  }
+
+  console.log("[ProLayout] Auth + Subscription checks passed. Rendering children...");
+
   return <>{children}</>;
 }
