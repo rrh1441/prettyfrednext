@@ -1,3 +1,5 @@
+/* FILE: app/pro/MembersClient.tsx */
+
 "use client";
 
 import React, { useState, useRef, useEffect, FormEvent } from "react";
@@ -8,87 +10,72 @@ import Card from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+/** Each row in fred_data table. */
 interface FredRow {
   date: string;
   value: number | null;
 }
 
-/**
- * Each chart's data shape.
- */
+/** Full chart data for a single series. */
 interface SeriesData {
   series_id: string;
   description: string;
   data: { date: string; value: number | null }[];
 }
 
-/**
- * Minimal shape for your "remainingSeriesMetadata" & "allSeriesList".
- */
+/** Minimal shape for your metadata lists. */
 interface SeriesMeta {
   series_id: string;
   description: string;
 }
 
+/** Props for your MembersClient component.
+ *  Removed 'initialSeries' and 'remainingSeriesMetadata' since they were unused.
+ */
 interface MembersClientProps {
-  // We still accept some initial data from SSR if you want,
-  // but in this example we’ll just re-fetch everything for clarity.
-  initialSeries: SeriesData[];
-  remainingSeriesMetadata: SeriesMeta[];
-  allSeriesList: SeriesMeta[]; 
+  /** Full list of series metadata. */
+  allSeriesList: SeriesMeta[];
 }
 
-export default function MembersClient({
-  initialSeries,
-  remainingSeriesMetadata,
-  allSeriesList,
-}: MembersClientProps) {
-  // -----------------------------
-  //    1) STATE & REFS
-  // -----------------------------
-  const [allSeries, setAllSeries] = useState<SeriesData[]>([]); // entire dataset
+export default function MembersClient({ allSeriesList }: MembersClientProps) {
+  // 1) States
+  const [allSeries, setAllSeries] = useState<SeriesData[]>([]); // All chart data loaded from supabase
   const [pinnedIDs, setPinnedIDs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-
-  // For popups / modals
   const [showAllSeriesModal, setShowAllSeriesModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
 
-  // Export references
+  // 2) Chart refs for exporting images
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1); // 1-based
+  // 3) Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
   // -----------------------------
-  //    2) FETCH ALL CHART DATA
+  //   FETCH ALL CHART DATA
   // -----------------------------
-  /**
-   * We do one-time fetch of all chart data from your "fred_data" table
-   * for the entire "allSeriesList" if you want full-dataset searching.
-   * (In reality, you might do this SSR to avoid big client fetch.)
-   */
   useEffect(() => {
     async function fetchAll() {
       try {
-        // For each SeriesMeta, fetch up to e.g. 2500 rows
         const results: SeriesData[] = [];
         for (const meta of allSeriesList) {
           const { data: rows, error } = await supabase
             .from("fred_data")
             .select("date, value")
             .eq("series_id", meta.series_id)
-            .order("date", { ascending: true }); // or descending
+            .order("date", { ascending: true });
 
           if (error) {
-            console.warn("Error fetching series_id=", meta.series_id, error.message);
+            console.warn("Error fetching series:", meta.series_id, error.message);
             continue;
           }
+
           const chartData = (rows ?? []).map((r: FredRow) => ({
             date: r.date,
             value: r.value,
           }));
+
           results.push({
             series_id: meta.series_id,
             description: meta.description,
@@ -104,7 +91,7 @@ export default function MembersClient({
   }, [allSeriesList]);
 
   // -----------------------------
-  //    3) PIN / UNPIN LOGIC
+  //   PIN / UNPIN LOGIC
   // -----------------------------
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
@@ -115,7 +102,7 @@ export default function MembersClient({
   }
 
   // -----------------------------
-  //    4) SEARCH FILTER
+  //   SEARCH
   // -----------------------------
   const normalizedSearch = searchTerm.trim().toLowerCase();
   let filtered = allSeries;
@@ -129,23 +116,19 @@ export default function MembersClient({
   }
 
   // -----------------------------
-  //    5) PINNED vs UNPINNED
+  //   PINNED FIRST
   // -----------------------------
   const pinned = filtered.filter((s) => pinnedIDs.includes(s.series_id));
   const unpinned = filtered.filter((s) => !pinnedIDs.includes(s.series_id));
-
-  // Then combine them (pinned first):
   const combined = [...pinned, ...unpinned];
 
   // -----------------------------
-  //    6) PAGINATION SLICING
+  //   PAGINATION
   // -----------------------------
   const totalItems = combined.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  // For safety, clamp currentPage if search changed
   useEffect(() => {
-    // If current page is out of range after searching
     if (currentPage > totalPages && totalPages > 0) {
       setCurrentPage(totalPages);
     }
@@ -156,7 +139,7 @@ export default function MembersClient({
   const displayedCharts = combined.slice(startIndex, endIndex);
 
   // -----------------------------
-  //    7) EXPORT HANDLERS
+  //   EXPORT HANDLERS
   // -----------------------------
   async function handleExportPng(seriesId: string) {
     const node = chartRefs.current[seriesId];
@@ -196,7 +179,7 @@ export default function MembersClient({
   }
 
   // -----------------------------
-  //    8) REQUEST FORM SUBMIT
+  //   REQUEST FORM
   // -----------------------------
   async function handleRequestSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -222,18 +205,18 @@ export default function MembersClient({
   }
 
   // -----------------------------
-  //    9) RENDER
+  //   RENDER
   // -----------------------------
   return (
     <div className="p-4">
-      {/* Top Controls */}
+      {/* TOP CONTROLS */}
       <div className="flex flex-wrap gap-2 mb-4">
         <Input
           placeholder="Search by series_id or description..."
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
-            setCurrentPage(1); // reset to page 1 on new search
+            setCurrentPage(1);
           }}
         />
         <Button variant="outline" onClick={() => setShowAllSeriesModal(true)}>
@@ -244,7 +227,7 @@ export default function MembersClient({
         </Button>
       </div>
 
-      {/* PAGE CONTROLS */}
+      {/* PAGINATION CONTROLS */}
       <div className="flex items-center mb-4 gap-2">
         <Button
           variant="outline"
@@ -265,7 +248,7 @@ export default function MembersClient({
         </Button>
       </div>
 
-      {/* MAIN LIST OF CHARTS */}
+      {/* CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayedCharts.map((series) => (
           <Card key={series.series_id} className="p-4">
@@ -307,7 +290,7 @@ export default function MembersClient({
         ))}
       </div>
 
-      {/* Pagination repeated at bottom (optional) */}
+      {/* SECOND PAGINATION BLOCK (OPTIONAL) */}
       {displayedCharts.length > 0 && (
         <div className="flex items-center mt-4 gap-2">
           <Button
@@ -353,7 +336,7 @@ export default function MembersClient({
         </div>
       )}
 
-      {/* REQUEST A DATA SERIES MODAL */}
+      {/* REQUEST FORM MODAL */}
       {showRequestForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded p-4 w-full max-w-md relative">
