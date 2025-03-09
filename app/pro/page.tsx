@@ -1,7 +1,7 @@
 /* FILE: app/pro/page.tsx */
 
 import Image from "next/image";
-import { supabase } from "@/lib/supabaseClient";
+// import { supabase } from "@/lib/supabaseClient";  <-- Removed to avoid @typescript-eslint/no-unused-vars
 import MembersClient from "./MembersClient";
 
 /**
