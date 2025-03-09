@@ -110,7 +110,7 @@ export default async function ProPage() {
           </div>
         </div>
 
-        {/* Pass your full array to MembersClient */}
+        {/* Pass your full array to  MembersClient */}
         <MembersClient allSeriesList={FULL_SERIES_LIST} />
       </div>
     </div>
