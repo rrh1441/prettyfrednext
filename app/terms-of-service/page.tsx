@@ -1,5 +1,24 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+
+// Helper component for section formatting
+import React from "react";
+
+interface TermsSectionProps {
+  number: number;
+  title: string;
+  children: React.ReactNode;
+}
+
+const TermsSection: React.FC<TermsSectionProps> = ({ number, title, children }) => {
+  return (
+    <div className="space-y-3">
+      <h2 className="text-2xl font-semibold text-slate-800">
+        {number}. {title}
+      </h2>
+      <div className="text-slate-700 pl-1">{children}</div>
+    </div>
+  );
+};
 
 export default function TermsOfServicePage() {
   return (
@@ -13,7 +32,8 @@ export default function TermsOfServicePage() {
                 <p className="text-slate-500">
                   <strong>Effective Date:</strong> March 1, 2025
                 </p>
-                <Separator className="my-4" />
+                {/* Replace custom <Separator> with a standard <hr> to avoid missing import */}
+                <hr className="my-4" />
               </div>
 
               <div className="text-slate-700 leading-relaxed">
@@ -106,18 +126,5 @@ export default function TermsOfServicePage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-
-// Helper component for terms sections
-const TermsSection = ({ number, title, children }) => {
-  return (
-    <div className="space-y-3">
-      <h2 className="text-2xl font-semibold text-slate-800">
-        {number}. {title}
-      </h2>
-      <div className="text-slate-700 pl-1">{children}</div>
-    </div>
-  )
-}
-
