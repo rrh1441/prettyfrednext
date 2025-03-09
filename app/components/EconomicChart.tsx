@@ -29,8 +29,8 @@ interface DataPoint {
 
 /** Each line in Nivo's data array. */
 interface NivoLineSeries {
-  id: string;              // The name/identifier
-  color: string;           // We store the line's color
+  id: string; // The name/identifier
+  color: string; // We store the line's color
   data: { x: string; y: number }[];
 }
 
@@ -38,7 +38,7 @@ interface EconomicChartProps {
   title: string;
   subtitle: string;
   data: DataPoint[];
-  color?: string;          // optional main color
+  color?: string; // optional main color
   isEditable?: boolean;
 }
 
@@ -227,6 +227,16 @@ export default function EconomicChart({
   // Here's the array of colors matching finalChartData order:
   const colorArray = finalChartData.map((line) => line.color);
 
+  // ---------- Custom Y-Axis Formatter ----------
+  // Only shrink numbers in the millions; leave smaller values unchanged.
+  const formatYAxis = (val: number | string) => {
+    const num = typeof val === "number" ? val : Number(val);
+    if (num >= 1e6) {
+      return (num / 1e6).toFixed(1).replace(/\.0$/, "") + "m";
+    }
+    return num.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  };
+
   // ---------- Render ----------
   return (
     <Card style={{ backgroundColor: "#fff" }} className={cn("p-4", isEditable && "border-primary")}>
@@ -398,8 +408,7 @@ export default function EconomicChart({
               legend: "Value",
               legendOffset: -60,
               legendPosition: "middle",
-              format: (val) =>
-                Number(val).toLocaleString(undefined, { maximumFractionDigits: 1 }),
+              format: formatYAxis,
             }}
             curve="linear"
             useMesh
