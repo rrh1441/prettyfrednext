@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 
 /** Helper to map a Stripe price ID to a plan label. */
 function mapPriceIdToPlan(priceId: string): string {
