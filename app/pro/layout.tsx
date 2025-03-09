@@ -7,8 +7,8 @@ import { cookies } from "next/headers";
 export default async function ProLayout({ children }: { children: ReactNode }) {
   console.log("[ProLayout] Checking user session on server...");
 
-  // Use next/headers to access cookies from the incoming request.
-  const cookieStore = cookies();
+  // Await the cookies so that we get a ReadonlyRequestCookies instance.
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
