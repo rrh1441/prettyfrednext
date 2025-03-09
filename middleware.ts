@@ -1,9 +1,10 @@
+/* FILE: middleware.ts */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
   // Create a response object
-  const response = NextResponse.next({
+  let supabaseResponse = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -20,32 +21,31 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+            // Remove expires/maxAge to make them session cookies
+            delete options.expires;
+            delete options.maxAge;
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              // secure: true, // if you want https only
+            });
           });
         },
       },
     }
   );
 
-  // Refresh session - this is critical for maintaining auth state
+  // Refresh session - keeps auth in sync across SSR and client
   await supabase.auth.getSession();
 
-  // IMPORTANT: Log URL for debugging
+  // Debug log
   console.log(`Middleware processing: ${request.nextUrl.pathname}`);
   
-  // Return the response with auth cookies
-  return response;
+  // Return the response with session cookies
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (images, etc.)
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-}
+};
