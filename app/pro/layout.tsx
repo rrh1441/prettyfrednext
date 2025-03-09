@@ -24,7 +24,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
           cookiesToSet.forEach(({ name, value, options }) => {
             try {
               cookieStore.set(name, value, options);
-            } catch (_error) {
+            } catch {
               // Ignore errors here (e.g. if called from a Server Component)
             }
           });
