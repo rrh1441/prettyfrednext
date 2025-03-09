@@ -55,7 +55,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
 
   console.log("[ProLayout] debugSubs =>", debugSubs, "error =>", debugSubsErr);
 
-  // 4) Actually fetch the row for this user
+  // 4) Actually fetch th e row for this user
   const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
