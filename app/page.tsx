@@ -1,14 +1,36 @@
-/**
+/** 
  * FILE: app/page.tsx
  * This is the server component “shell.”
  * We export const dynamic = "force-dynamic" to skip pre-rendering,
- * and then render the “client” file for all your logic.
+ * then render the “client” file for all your logic.
  */
 export const dynamic = "force-dynamic";
 
 import HomeClient from "./HomeClient";
 
 export default function Page() {
-  // Nothing else fancy here. Just return the client component.
-  return <HomeClient />;
+  return (
+    <>
+      {/* The main home content */}
+      <HomeClient />
+
+      {/* Footer links added at the bottom */}
+      <footer className="mt-8 flex justify-center space-x-6">
+        <a href="/privacy-policy" className="underline">
+          Privacy Policy
+        </a>
+        <a href="/terms-of-service" className="underline">
+          Terms of Service
+        </a>
+        <a
+          href="https://billing.stripe.com/p/login/bIYcNjb9M6id5Og7ss"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          Manage Subscription
+        </a>
+      </footer>
+    </>
+  );
 }

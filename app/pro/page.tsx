@@ -1,8 +1,6 @@
 /* FILE: app/pro/page.tsx */
 
 import Image from "next/image";
-// Remove or comment out if unused:
-// import { supabase } from "@/lib/supabaseClient";
 import MembersClient from "./MembersClient";
 
 /** 
@@ -95,24 +93,44 @@ const FULL_SERIES_LIST = [
 
 export default async function ProPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Centered Logo Header */}
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="/prettyfred-logo.png"
-              alt="PrettyFRED Logo"
-              width={600}
-              height={300}
-              priority
-            />
+    <>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          {/* Centered Logo Header */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/prettyfred-logo.png"
+                alt="PrettyFRED Logo"
+                width={600}
+                height={300}
+                priority
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Pass your full array to  MembersClient */}
-        <MembersClient allSeriesList={FULL_SERIES_LIST} />
+          {/* Pass your full array to MembersClient */}
+          <MembersClient allSeriesList={FULL_SERIES_LIST} />
+        </div>
       </div>
-    </div>
+
+      {/* Footer links added at the bottom */}
+      <footer className="mt-8 flex justify-center space-x-6">
+        <a href="/privacy-policy" className="underline">
+          Privacy Policy
+        </a>
+        <a href="/terms-of-service" className="underline">
+          Terms of Service
+        </a>
+        <a
+          href="https://billing.stripe.com/p/login/bIYcNjb9M6id5Og7ss"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          Manage Subscription
+        </a>
+      </footer>
+    </>
   );
 }
