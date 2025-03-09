@@ -1,9 +1,14 @@
+// app/pro/layout.tsx
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export default async function ProLayout({ children }: { children: ReactNode }) {
   console.log("[ProLayout] Checking user session on server...");
+
+  // Use next/headers to access cookies from the incoming request
+  const cookieStore = cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,12 +16,19 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     {
       cookies: {
         getAll() {
-          // Typically no-op: we rely on middleware
-          console.log("[ProLayout] getAll => returning [] (no-op)");
-          return [];
+          // Retrieve all cookies from the incoming request
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          console.log("[ProLayout] setAll => ignoring, but param used =>", cookiesToSet.length);
+          // Attempt to set cookies on the response. In Server Components, this may fail,
+          // which is acceptable if middleware is refreshing sessions.
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              cookieStore.set(name, value, options);
+            } catch (error) {
+              // Ignore errors here (e.g. if called from a Server Component)
+            }
+          });
         },
       },
     }
@@ -40,7 +52,7 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
 
   // 2) Prepare userEmail
   let userEmail = session.user?.email ?? "";
-  userEmail = userEmail.trim().toLowerCase(); // just in case of trailing space or case mismatch
+  userEmail = userEmail.trim().toLowerCase(); // Normalize email
   if (!userEmail) {
     console.log("[ProLayout] No userEmail => redirect /?auth=signup");
     redirect("/?auth=signup");
@@ -52,10 +64,9 @@ export default async function ProLayout({ children }: { children: ReactNode }) {
     .from("subscribers")
     .select("*")
     .limit(10);
-
   console.log("[ProLayout] debugSubs =>", debugSubs, "error =>", debugSubsErr);
 
-  // 4) Actually fetch th e row for this user
+  // 4) Actually fetch the row for this user
   const { data: subscriber, error: subError } = await supabase
     .from("subscribers")
     .select("status")
