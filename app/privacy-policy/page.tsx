@@ -1,8 +1,4 @@
-/* eslint-disable no-unused-vars */
-// (Disabling unused-vars here just in case you use custom types or imports 
-//  that you haven't incorporated into your project yet.)
-
-export default function PrivacyPage() {
+export default function PrivacyPolicyPage() {
     return (
       <main>
         <h1>Privacy Policy</h1>
@@ -93,8 +89,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Contact Us</strong>
             <p>
-              If you have questions or concerns about this Privacy Policy, please contact us
-              at:
+              If you have questions or concerns about this Privacy Policy, please contact us at:
             </p>
             <p>
               Email: <a href="mailto:support@simpleappsgroup.com">support@simpleappsgroup.com</a>

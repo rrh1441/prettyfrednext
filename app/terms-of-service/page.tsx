@@ -1,8 +1,4 @@
-/* eslint-disable no-unused-vars */
-// (Disabling unused-vars here just in case you use custom types or imports 
-//  that you haven't incorporated into your project yet.)
-
-export default function TermsPage() {
+export default function TermsOfServicePage() {
     return (
       <main>
         <h1>Terms of Service</h1>
@@ -10,9 +6,9 @@ export default function TermsPage() {
           <strong>Effective Date:</strong> March 1, 2025
         </p>
         <p>
-          These Terms of Service ("Terms") govern your use of the Simple Apps Group
-          applications ("the App"), owned and operated by Simple Apps, LLC ("we,"
-          "our," or "us"). By accessing or using the App, you agree to these Terms.
+          These Terms of Service (&quot;Terms&quot;) govern your use of the Simple Apps Group
+          applications (&quot;the App&quot;), owned and operated by Simple Apps, LLC (&quot;we,&quot;
+          &quot;our,&quot; or &quot;us&quot;). By accessing or using the App, you agree to these Terms.
           If you do not agree, please refrain from using the App.
         </p>
   
