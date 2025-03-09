@@ -1,37 +1,41 @@
-/* FILE: app/pro/MembersClient.tsx */
-
 "use client";
 
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  FormEvent
-} from "react";
+import React, { useState, useRef, useEffect, FormEvent } from "react";
 import html2canvas from "html2canvas";
 import { supabase } from "@/lib/supabaseClient";
 import EconomicChart from "@/components/EconomicChart";
 import Card from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { SeriesData } from "./page";
 
-interface SeriesMeta {
-  series_id: string;
-  description: string;
-}
-
-/** Row shape from 'fred_data'. */
 interface FredRow {
   date: string;
   value: number | null;
 }
 
+/**
+ * Each chart's data shape.
+ */
+interface SeriesData {
+  series_id: string;
+  description: string;
+  data: { date: string; value: number | null }[];
+}
+
+/**
+ * Minimal shape for your "remainingSeriesMetadata" & "allSeriesList".
+ */
+interface SeriesMeta {
+  series_id: string;
+  description: string;
+}
+
 interface MembersClientProps {
-  initialSeries: SeriesData[];            // first 10 (loaded) from SSR
-  remainingSeriesMetadata: SeriesMeta[];  // the rest (metadata only)
-  allSeriesList: SeriesMeta[];           // entire full list for "Show All Series" popup
+  // We still accept some initial data from SSR if you want,
+  // but in this example we’ll just re-fetch everything for clarity.
+  initialSeries: SeriesData[];
+  remainingSeriesMetadata: SeriesMeta[];
+  allSeriesList: SeriesMeta[]; 
 }
 
 export default function MembersClient({
@@ -39,124 +43,69 @@ export default function MembersClient({
   remainingSeriesMetadata,
   allSeriesList,
 }: MembersClientProps) {
-  // 1) State: loaded series, pinned IDs, leftover, search
-  const [loadedSeries, setLoadedSeries] = useState<SeriesData[]>(initialSeries);
-  const [unused, setUnused] = useState<SeriesMeta[]>(remainingSeriesMetadata);
+  // -----------------------------
+  //    1) STATE & REFS
+  // -----------------------------
+  const [allSeries, setAllSeries] = useState<SeriesData[]>([]); // entire dataset
   const [pinnedIDs, setPinnedIDs] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Popups
+  // For popups / modals
   const [showAllSeriesModal, setShowAllSeriesModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
 
-  // 2) Chart Refs for exporting images
+  // Export references
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // 3) Infinite Scroll
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1); // 1-based
+  const pageSize = 20;
 
-  // ---- Helper to fetch row data from Supabase
-  const fetchSeriesRows = useCallback(async (metas: SeriesMeta[]): Promise<SeriesData[]> => {
-    const results: SeriesData[] = [];
-
-    for (const m of metas) {
-      const { data: rows, error } = await supabase
-        .from("fred_data")
-        .select("date, value")
-        .eq("series_id", m.series_id)
-        .order("date", { ascending: false })
-        .limit(2500);
-
-      if (error) {
-        console.warn("Error fetching", m.series_id, error.message);
-        continue;
-      }
-
-      // reverse so final array is oldest->newest
-      const reversed = (rows ?? []).reverse();
-      const chartData = reversed.map((r: FredRow) => ({
-        date: r.date,
-        value: r.value,
-      }));
-
-      results.push({
-        series_id: m.series_id,
-        description: m.description,
-        data: chartData,
-      });
-    }
-
-    return results;
-  }, []);
-
-  // ---- loadNextChunk: fetch next 10 from unused
-  const loadNextChunk = useCallback(async () => {
-    if (loadingMore || unused.length === 0) return;
-    setLoadingMore(true);
-
-    const chunk = unused.slice(0, 10);
-    const newData = await fetchSeriesRows(chunk);
-
-    setLoadedSeries((prev) => [...prev, ...newData]);
-    setUnused((prev) => prev.slice(10));
-
-    setLoadingMore(false);
-  }, [loadingMore, unused, fetchSeriesRows]);
-
-  // IntersectionObserver for infinite scrolling
+  // -----------------------------
+  //    2) FETCH ALL CHART DATA
+  // -----------------------------
+  /**
+   * We do one-time fetch of all chart data from your "fred_data" table
+   * for the entire "allSeriesList" if you want full-dataset searching.
+   * (In reality, you might do this SSR to avoid big client fetch.)
+   */
   useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
+    async function fetchAll() {
+      try {
+        // For each SeriesMeta, fetch up to e.g. 2500 rows
+        const results: SeriesData[] = [];
+        for (const meta of allSeriesList) {
+          const { data: rows, error } = await supabase
+            .from("fred_data")
+            .select("date, value")
+            .eq("series_id", meta.series_id)
+            .order("date", { ascending: true }); // or descending
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting) {
-          loadNextChunk();
+          if (error) {
+            console.warn("Error fetching series_id=", meta.series_id, error.message);
+            continue;
+          }
+          const chartData = (rows ?? []).map((r: FredRow) => ({
+            date: r.date,
+            value: r.value,
+          }));
+          results.push({
+            series_id: meta.series_id,
+            description: meta.description,
+            data: chartData,
+          });
         }
-      },
-      { threshold: 0.25 }
-    );
-
-    observer.observe(node);
-    return () => {
-      observer.unobserve(node);
-    };
-  }, [loadNextChunk]);
-
-  // ---- Searching
-  async function handleSearch() {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) return;
-
-    const { data: found, error } = await supabase
-      .from("economic_indicators")
-      .select("series_id, description")
-      .or(`series_id.ilike.%${term}%,description.ilike.%${term}%`)
-      .limit(20);
-
-    if (error || !found) {
-      console.warn("Search error:", error?.message);
-      return;
-    }
-
-    // Filter out items we already have
-    const toFetch: SeriesMeta[] = [];
-    for (const f of found) {
-      if (!loadedSeries.some((ls) => ls.series_id === f.series_id)) {
-        toFetch.push({ series_id: f.series_id, description: f.description });
+        setAllSeries(results);
+      } catch (err) {
+        console.error("Error fetching all series data:", err);
       }
     }
+    fetchAll();
+  }, [allSeriesList]);
 
-    if (toFetch.length > 0) {
-      const newlyFetched = await fetchSeriesRows(toFetch);
-      setLoadedSeries((prev) => [...prev, ...newlyFetched]);
-      setUnused((prev) => prev.filter((u) => !toFetch.some((tf) => tf.series_id === u.series_id)));
-    }
-  }
-
-  // ---- Pin logic
+  // -----------------------------
+  //    3) PIN / UNPIN LOGIC
+  // -----------------------------
   function togglePin(seriesId: string) {
     setPinnedIDs((prev) =>
       prev.includes(seriesId)
@@ -165,19 +114,50 @@ export default function MembersClient({
     );
   }
 
-  // ---- final displayed list
-  const term = searchTerm.toLowerCase().trim();
-  let displayed = loadedSeries;
-  if (term) {
-    displayed = displayed.filter((s) =>
-      (s.series_id + s.description).toLowerCase().includes(term)
+  // -----------------------------
+  //    4) SEARCH FILTER
+  // -----------------------------
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  let filtered = allSeries;
+
+  if (normalizedSearch) {
+    filtered = allSeries.filter(
+      (s) =>
+        s.series_id.toLowerCase().includes(normalizedSearch) ||
+        s.description.toLowerCase().includes(normalizedSearch)
     );
   }
 
-  const pinned = displayed.filter((s) => pinnedIDs.includes(s.series_id));
-  const unpinned = displayed.filter((s) => !pinnedIDs.includes(s.series_id));
+  // -----------------------------
+  //    5) PINNED vs UNPINNED
+  // -----------------------------
+  const pinned = filtered.filter((s) => pinnedIDs.includes(s.series_id));
+  const unpinned = filtered.filter((s) => !pinnedIDs.includes(s.series_id));
 
-  // ---- Export logic
+  // Then combine them (pinned first):
+  const combined = [...pinned, ...unpinned];
+
+  // -----------------------------
+  //    6) PAGINATION SLICING
+  // -----------------------------
+  const totalItems = combined.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // For safety, clamp currentPage if search changed
+  useEffect(() => {
+    // If current page is out of range after searching
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const displayedCharts = combined.slice(startIndex, endIndex);
+
+  // -----------------------------
+  //    7) EXPORT HANDLERS
+  // -----------------------------
   async function handleExportPng(seriesId: string) {
     const node = chartRefs.current[seriesId];
     if (!node) return;
@@ -215,7 +195,9 @@ export default function MembersClient({
     link.click();
   }
 
-  // ---- Request a data series form
+  // -----------------------------
+  //    8) REQUEST FORM SUBMIT
+  // -----------------------------
   async function handleRequestSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -239,18 +221,21 @@ export default function MembersClient({
     }
   }
 
-  // ---- Render
+  // -----------------------------
+  //    9) RENDER
+  // -----------------------------
   return (
     <div className="p-4">
+      {/* Top Controls */}
       <div className="flex flex-wrap gap-2 mb-4">
         <Input
           placeholder="Search by series_id or description..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1); // reset to page 1 on new search
+          }}
         />
-        <Button variant="outline" onClick={handleSearch}>
-          Search
-        </Button>
         <Button variant="outline" onClick={() => setShowAllSeriesModal(true)}>
           Show All Series
         </Button>
@@ -259,57 +244,30 @@ export default function MembersClient({
         </Button>
       </div>
 
-      {/* PINNED */}
-      {pinned.length > 0 && (
-        <>
-          <h2 className="text-xl font-semibold mb-2">Pinned Charts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {pinned.map((series) => (
-              <Card key={series.series_id} className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-bold">
-                    {series.series_id} - {series.description}
-                  </h3>
-                  <Button variant="outline" onClick={() => togglePin(series.series_id)}>
-                    Unpin
-                  </Button>
-                </div>
+      {/* PAGE CONTROLS */}
+      <div className="flex items-center mb-4 gap-2">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous Page
+        </Button>
+        <span className="text-sm">
+          Page {currentPage} of {totalPages || 1}
+        </span>
+        <Button
+          variant="outline"
+          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+          disabled={currentPage === totalPages || totalPages === 0}
+        >
+          Next Page
+        </Button>
+      </div>
 
-                <div
-                  ref={(el) => {
-                    chartRefs.current[series.series_id] = el;
-                  }}
-                >
-                  <EconomicChart
-                    title={series.description}
-                    subtitle={series.series_id}
-                    data={series.data}
-                    color="#6E59A5"
-                    isEditable
-                  />
-                </div>
-
-                <div className="flex gap-2 mt-2">
-                  <Button variant="outline" onClick={() => handleExportPng(series.series_id)}>
-                    PNG
-                  </Button>
-                  <Button variant="outline" onClick={() => handleExportJpg(series.series_id)}>
-                    JPG
-                  </Button>
-                  <Button variant="outline" onClick={() => handleExportCsv(series)}>
-                    CSV
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* UNPINNED */}
-      <h2 className="text-xl font-semibold mb-2">All Charts</h2>
+      {/* MAIN LIST OF CHARTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {unpinned.map((series) => (
+        {displayedCharts.map((series) => (
           <Card key={series.series_id} className="p-4">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-bold">
@@ -349,9 +307,28 @@ export default function MembersClient({
         ))}
       </div>
 
-      {/* Infinite scroll sentinel */}
-      <div ref={sentinelRef} className="h-10 w-full" />
-      {loadingMore && <div className="text-center mt-2">Loading more...</div>}
+      {/* Pagination repeated at bottom (optional) */}
+      {displayedCharts.length > 0 && (
+        <div className="flex items-center mt-4 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+            disabled={currentPage === 1}
+          >
+            Previous Page
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} of {totalPages || 1}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages || totalPages === 0}
+          >
+            Next Page
+          </Button>
+        </div>
+      )}
 
       {/* SHOW ALL SERIES MODAL */}
       {showAllSeriesModal && (
